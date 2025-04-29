@@ -1,10 +1,9 @@
 <?php
 /**
- * Crime Report Management
- * 
- * Handles creation and management of crime reports
- * 
- * @package Sandbaai_Crime
+ * Crime Report Class
+ *
+ * @package    Sandbaai_Crime
+ * @subpackage Sandbaai_Crime/includes
  */
 
 // Exit if accessed directly
@@ -12,540 +11,881 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class Sandbaai_Crime_Reports {
-    
+/**
+ * Crime Report class.
+ *
+ * Handles the creation, retrieval, updating, and deletion of crime reports.
+ *
+ * @since      1.0.0
+ */
+class Sandbaai_Crime_Report {
+
     /**
-     * Instance of this class.
+     * The ID of this crime report.
      *
      * @since    1.0.0
-     * @var      object
+     * @access   private
+     * @var      int    $id    The ID of this crime report.
      */
-    protected static $instance = null;
+    private $id;
 
     /**
-     * Initialize the class
-     */
-    public function __construct() {
-        $this->init_hooks();
-    }
-
-    /**
-     * Return an instance of this class.
+     * The title of this crime report.
      *
-     * @return    object    A single instance of this class.
+     * @since    1.0.0
+     * @access   private
+     * @var      string    $title    The title of this crime report.
      */
-    public static function get_instance() {
-        if (null == self::$instance) {
-            self::$instance = new self;
-        }
-        return self::$instance;
-    }
+    private $title;
 
     /**
-     * Initialize hooks
+     * The description of this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      string    $description    The description of this crime report.
      */
-    private function init_hooks() {
-        // Register custom post type and taxonomy
-        add_action('init', array($this, 'register_post_type'));
-        add_action('init', array($this, 'register_taxonomy'));
-        
-        // Add meta boxes
-        add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
-        
-        // Save post meta
-        add_action('save_post_crime_report', array($this, 'save_meta_box_data'));
-        
-        // Add admin menu
-        add_action('admin_menu', array($this, 'add_admin_menu'));
-        
-        // Register shortcodes
-        add_shortcode('crime_reporting_form', array($this, 'crime_reporting_form_shortcode'));
-        add_shortcode('crime_statistics', array($this, 'crime_statistics_shortcode'));
-        
-        // AJAX handlers for form submission
-        add_action('wp_ajax_submit_crime_report', array($this, 'ajax_submit_crime_report'));
-        add_action('wp_ajax_nopriv_submit_crime_report', array($this, 'ajax_submit_crime_report'));
-        
-        // Filter crime report content
-        add_filter('the_content', array($this, 'crime_report_content_filter'));
-        
-        // Register REST API endpoints
-        add_action('rest_api_init', array($this, 'register_rest_routes'));
-    }
+    private $description;
 
     /**
-     * Register crime report post type
+     * The category of this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      string    $category    The category of this crime report.
      */
-    public function register_post_type() {
-        $labels = array(
-            'name'                  => _x('Crime Reports', 'Post Type General Name', 'sandbaai-crime'),
-            'singular_name'         => _x('Crime Report', 'Post Type Singular Name', 'sandbaai-crime'),
-            'menu_name'             => __('Crime Reports', 'sandbaai-crime'),
-            'name_admin_bar'        => __('Crime Report', 'sandbaai-crime'),
-            'archives'              => __('Crime Report Archives', 'sandbaai-crime'),
-            'attributes'            => __('Crime Report Attributes', 'sandbaai-crime'),
-            'all_items'             => __('All Crime Reports', 'sandbaai-crime'),
-            'add_new_item'          => __('Add New Crime Report', 'sandbaai-crime'),
-            'add_new'               => __('Add New', 'sandbaai-crime'),
-            'new_item'              => __('New Crime Report', 'sandbaai-crime'),
-            'edit_item'             => __('Edit Crime Report', 'sandbaai-crime'),
-            'update_item'           => __('Update Crime Report', 'sandbaai-crime'),
-            'view_item'             => __('View Crime Report', 'sandbaai-crime'),
-            'view_items'            => __('View Crime Reports', 'sandbaai-crime'),
-            'search_items'          => __('Search Crime Report', 'sandbaai-crime'),
-            'not_found'             => __('Not found', 'sandbaai-crime'),
-            'not_found_in_trash'    => __('Not found in Trash', 'sandbaai-crime'),
-        );
-        
-        $args = array(
-            'label'                 => __('Crime Report', 'sandbaai-crime'),
-            'description'           => __('Crime reports in Sandbaai', 'sandbaai-crime'),
-            'labels'                => $labels,
-            'supports'              => array('title', 'editor', 'thumbnail'),
-            'hierarchical'          => false,
-            'public'                => true,
-            'show_ui'               => true,
-            'show_in_menu'          => false, // Will be added under custom menu
-            'menu_position'         => 5,
-            'menu_icon'             => 'dashicons-shield-alt',
-            'show_in_admin_bar'     => true,
-            'show_in_nav_menus'     => true,
-            'can_export'            => true,
-            'has_archive'           => true,
-            'exclude_from_search'   => false,
-            'publicly_queryable'    => true,
-            'capability_type'       => 'post',
-            'show_in_rest'          => true,
-        );
-        
-        register_post_type('crime_report', $args);
-    }
+    private $category;
 
     /**
-     * Register crime category taxonomy
+     * The date and time of this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      string    $date_time    The date and time of this crime report.
      */
-    public function register_taxonomy() {
-        $labels = array(
-            'name'                       => _x('Crime Categories', 'Taxonomy General Name', 'sandbaai-crime'),
-            'singular_name'              => _x('Crime Category', 'Taxonomy Singular Name', 'sandbaai-crime'),
-            'menu_name'                  => __('Crime Categories', 'sandbaai-crime'),
-            'all_items'                  => __('All Crime Categories', 'sandbaai-crime'),
-            'parent_item'                => __('Parent Crime Category', 'sandbaai-crime'),
-            'parent_item_colon'          => __('Parent Crime Category:', 'sandbaai-crime'),
-            'new_item_name'              => __('New Crime Category Name', 'sandbaai-crime'),
-            'add_new_item'               => __('Add New Crime Category', 'sandbaai-crime'),
-            'edit_item'                  => __('Edit Crime Category', 'sandbaai-crime'),
-            'update_item'                => __('Update Crime Category', 'sandbaai-crime'),
-            'view_item'                  => __('View Crime Category', 'sandbaai-crime'),
-            'separate_items_with_commas' => __('Separate crime categories with commas', 'sandbaai-crime'),
-            'add_or_remove_items'        => __('Add or remove crime categories', 'sandbaai-crime'),
-            'choose_from_most_used'      => __('Choose from the most used', 'sandbaai-crime'),
-            'popular_items'              => __('Popular Crime Categories', 'sandbaai-crime'),
-            'search_items'               => __('Search Crime Categories', 'sandbaai-crime'),
-            'not_found'                  => __('Not Found', 'sandbaai-crime'),
-            'no_terms'                   => __('No crime categories', 'sandbaai-crime'),
-        );
-        
-        $args = array(
-            'labels'                     => $labels,
-            'hierarchical'               => true,
-            'public'                     => true,
-            'show_ui'                    => true,
-            'show_admin_column'          => true,
-            'show_in_nav_menus'          => true,
-            'show_tagcloud'              => false,
-            'show_in_rest'               => true,
-        );
-        
-        register_taxonomy('crime_category', array('crime_report'), $args);
-        
-        // Add default categories if they don't exist
-        if (!term_exists('Burglary', 'crime_category')) {
-            wp_insert_term('Burglary', 'crime_category');
-        }
-        
-        if (!term_exists('Theft', 'crime_category')) {
-            wp_insert_term('Theft', 'crime_category');
-        }
-        
-        if (!term_exists('Assault', 'crime_category')) {
-            wp_insert_term('Assault', 'crime_category');
-        }
-        
-        if (!term_exists('Suspicious Activity', 'crime_category')) {
-            wp_insert_term('Suspicious Activity', 'crime_category');
-        }
-        
-        if (!term_exists('Vandalism', 'crime_category')) {
-            wp_insert_term('Vandalism', 'crime_category');
+    private $date_time;
+
+    /**
+     * The location of this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      string    $location    The location of this crime report.
+     */
+    private $location;
+
+    /**
+     * The zone of this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      string    $zone    The zone of this crime report.
+     */
+    private $zone;
+
+    /**
+     * The status of this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      string    $status    The status of this crime report (pending, approved, rejected).
+     */
+    private $status;
+
+    /**
+     * The result of this crime report (e.g., caught, unresolved).
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      string    $result    The result of this crime report.
+     */
+    private $result;
+
+    /**
+     * The security groups involved in this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      array    $security_groups    The security groups involved in this crime report.
+     */
+    private $security_groups;
+
+    /**
+     * The photos attached to this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      array    $photos    The photos attached to this crime report.
+     */
+    private $photos;
+
+    /**
+     * The user ID of the reporter.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @var      int    $reporter_id    The user ID of the reporter.
+     */
+    private $reporter_id;
+
+    /**
+     * Initialize the class and set its properties.
+     *
+     * @since    1.0.0
+     * @param    int       $id             The ID of this crime report.
+     */
+    public function __construct($id = 0) {
+        if ($id > 0) {
+            $this->id = $id;
+            $this->populate();
         }
     }
 
     /**
-     * Add meta boxes to crime report post type
+     * Populate the object with data from the database.
+     *
+     * @since    1.0.0
+     * @access   private
      */
-    public function add_meta_boxes() {
-        add_meta_box(
-            'crime_report_details',
-            __('Crime Details', 'sandbaai-crime'),
-            array($this, 'render_details_meta_box'),
-            'crime_report',
-            'normal',
-            'high'
-        );
-        
-        add_meta_box(
-            'crime_report_location',
-            __('Crime Location', 'sandbaai-crime'),
-            array($this, 'render_location_meta_box'),
-            'crime_report',
-            'normal',
-            'high'
-        );
-        
-        add_meta_box(
-            'crime_report_response',
-            __('Response Details', 'sandbaai-crime'),
-            array($this, 'render_response_meta_box'),
-            'crime_report',
-            'normal',
-            'high'
-        );
-    }
+    private function populate() {
+        global $wpdb;
 
-    /**
-     * Render details meta box
-     */
-    public function render_details_meta_box($post) {
-        wp_nonce_field('crime_report_meta_box', 'crime_report_meta_box_nonce');
+        $table_name = $wpdb->prefix . 'sandbaai_crime_reports';
         
-        $crime_date = get_post_meta($post->ID, '_crime_date', true);
-        $crime_time = get_post_meta($post->ID, '_crime_time', true);
-        $reporter_id = get_post_meta($post->ID, '_reporter_id', true);
-        $reporter_contact = get_post_meta($post->ID, '_reporter_contact', true);
-        ?>
-        <p>
-            <label for="crime_date"><?php _e('Date of Incident:', 'sandbaai-crime'); ?></label><br>
-            <input type="date" id="crime_date" name="crime_date" value="<?php echo esc_attr($crime_date); ?>" class="regular-text" />
-        </p>
-        
-        <p>
-            <label for="crime_time"><?php _e('Time of Incident:', 'sandbaai-crime'); ?></label><br>
-            <input type="time" id="crime_time" name="crime_time" value="<?php echo esc_attr($crime_time); ?>" class="regular-text" />
-        </p>
-        
-        <p>
-            <label for="reporter_contact"><?php _e('Reporter Contact Number:', 'sandbaai-crime'); ?></label><br>
-            <input type="text" id="reporter_contact" name="reporter_contact" value="<?php echo esc_attr($reporter_contact); ?>" class="regular-text" />
-        </p>
-        
-        <?php if (!empty($reporter_id)) : ?>
-            <p>
-                <strong><?php _e('Reported by:', 'sandbaai-crime'); ?></strong>
-                <?php 
-                $user = get_user_by('id', $reporter_id);
-                if ($user) {
-                    echo esc_html($user->display_name) . ' (' . esc_html($user->user_email) . ')';
-                } else {
-                    _e('Unknown user', 'sandbaai-crime');
-                }
-                ?>
-            </p>
-        <?php endif; ?>
-        <?php
-    }
+        $report = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM $table_name WHERE id = %d",
+                $this->id
+            )
+        );
 
-    /**
-     * Render location meta box
-     */
-    public function render_location_meta_box($post) {
-        $crime_location = get_post_meta($post->ID, '_crime_location', true);
-        $crime_zone = get_post_meta($post->ID, '_crime_zone', true);
-        $crime_latitude = get_post_meta($post->ID, '_crime_latitude', true);
-        $crime_longitude = get_post_meta($post->ID, '_crime_longitude', true);
-        
-        // Get all available zones
-        $zones = $this->get_all_zones();
-        ?>
-        <p>
-            <label for="crime_location"><?php _e('Address/Location:', 'sandbaai-crime'); ?></label><br>
-            <input type="text" id="crime_location" name="crime_location" value="<?php echo esc_attr($crime_location); ?>" class="large-text" />
-        </p>
-        
-        <p>
-            <label for="crime_zone"><?php _e('Zone:', 'sandbaai-crime'); ?></label><br>
-            <select id="crime_zone" name="crime_zone">
-                <option value=""><?php _e('Select Zone', 'sandbaai-crime'); ?></option>
-                <?php foreach ($zones as $zone_id => $zone_name) : ?>
-                    <option value="<?php echo esc_attr($zone_id); ?>" <?php selected($crime_zone, $zone_id); ?>>
-                        <?php echo esc_html($zone_name); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </p>
-        
-        <div class="coordinates-fields">
-            <p>
-                <label for="crime_latitude"><?php _e('Latitude:', 'sandbaai-crime'); ?></label><br>
-                <input type="text" id="crime_latitude" name="crime_latitude" value="<?php echo esc_attr($crime_latitude); ?>" class="medium-text" />
-            </p>
+        if ($report) {
+            $this->title = $report->title;
+            $this->description = $report->description;
+            $this->category = $report->category;
+            $this->date_time = $report->date_time;
+            $this->location = $report->location;
+            $this->zone = $report->zone;
+            $this->status = $report->status;
+            $this->result = $report->result;
+            $this->reporter_id = $report->reporter_id;
             
-            <p>
-                <label for="crime_longitude"><?php _e('Longitude:', 'sandbaai-crime'); ?></label><br>
-                <input type="text" id="crime_longitude" name="crime_longitude" value="<?php echo esc_attr($crime_longitude); ?>" class="medium-text" />
-            </p>
-        </div>
-        
-        <!-- Map display would go here in future enhancement -->
-        <?php
-    }
-
-    /**
-     * Render response meta box
-     */
-    public function render_response_meta_box($post) {
-        $crime_status = get_post_meta($post->ID, '_crime_status', true);
-        $security_groups = get_post_meta($post->ID, '_security_groups', true);
-        $resolution_notes = get_post_meta($post->ID, '_resolution_notes', true);
-        
-        // Get all security groups
-        $all_security_groups = get_posts(array(
-            'post_type' => 'security_group',
-            'posts_per_page' => -1,
-            'orderby' => 'title',
-            'order' => 'ASC',
-        ));
-        
-        if (!is_array($security_groups)) {
-            $security_groups = array();
+            // Get security groups
+            $this->security_groups = $this->get_security_groups();
+            
+            // Get photos
+            $this->photos = $this->get_photos();
         }
-        ?>
-        <p>
-            <label for="crime_status"><?php _e('Status:', 'sandbaai-crime'); ?></label><br>
-            <select id="crime_status" name="crime_status">
-                <option value="reported" <?php selected($crime_status, 'reported'); ?>><?php _e('Reported', 'sandbaai-crime'); ?></option>
-                <option value="investigating" <?php selected($crime_status, 'investigating'); ?>><?php _e('Investigating', 'sandbaai-crime'); ?></option>
-                <option value="resolved" <?php selected($crime_status, 'resolved'); ?>><?php _e('Resolved', 'sandbaai-crime'); ?></option>
-                <option value="unresolved" <?php selected($crime_status, 'unresolved'); ?>><?php _e('Unresolved', 'sandbaai-crime'); ?></option>
-                <option value="false_alarm" <?php selected($crime_status, 'false_alarm'); ?>><?php _e('False Alarm', 'sandbaai-crime'); ?></option>
-            </select>
-        </p>
-        
-        <p><strong><?php _e('Security Groups Involved:', 'sandbaai-crime'); ?></strong></p>
-        <div class="security-groups-selection">
-            <?php foreach ($all_security_groups as $group) : ?>
-                <p>
-                    <label>
-                        <input type="checkbox" name="security_groups[]" value="<?php echo esc_attr($group->ID); ?>" 
-                            <?php checked(in_array($group->ID, $security_groups)); ?> />
-                        <?php echo esc_html($group->post_title); ?>
-                    </label>
-                </p>
-            <?php endforeach; ?>
-        </div>
-        
-        <p>
-            <label for="resolution_notes"><?php _e('Resolution Notes:', 'sandbaai-crime'); ?></label><br>
-            <textarea id="resolution_notes" name="resolution_notes" rows="4" class="large-text"><?php echo esc_textarea($resolution_notes); ?></textarea>
-        </p>
-        <?php
     }
 
     /**
-     * Get all available zones in Sandbaai
+     * Get security groups related to this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @return   array    The security groups involved in this crime report.
      */
-    private function get_all_zones() {
-        // This would ideally come from a zone management system
-        // For now, we'll hardcode the 4 quadrants with subzones
-        return array(
-            'north-east' => __('North East', 'sandbaai-crime'),
-            'north-west' => __('North West', 'sandbaai-crime'),
-            'south-east' => __('South East', 'sandbaai-crime'),
-            'south-west' => __('South West', 'sandbaai-crime'),
-            'central' => __('Central', 'sandbaai-crime'),
-            'beach-front' => __('Beach Front', 'sandbaai-crime'),
-            'mountain-side' => __('Mountain Side', 'sandbaai-crime'),
-            'industrial' => __('Industrial Area', 'sandbaai-crime'),
+    private function get_security_groups() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'sandbaai_crime_report_security_groups';
+        
+        $security_groups = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT security_group_id FROM $table_name WHERE crime_report_id = %d",
+                $this->id
+            )
         );
+        
+        return $security_groups;
     }
 
     /**
-     * Save meta box data
+     * Get photos attached to this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @return   array    The photos attached to this crime report.
      */
-    public function save_meta_box_data($post_id) {
-        // Check if nonce is set
-        if (!isset($_POST['crime_report_meta_box_nonce'])) {
+    private function get_photos() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'sandbaai_crime_report_photos';
+        
+        $photos = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, file_path FROM $table_name WHERE crime_report_id = %d",
+                $this->id
+            )
+        );
+        
+        return $photos;
+    }
+
+    /**
+     * Save the crime report to the database.
+     *
+     * @since    1.0.0
+     * @return   int|false    The ID of the saved report, or false on failure.
+     */
+    public function save() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'sandbaai_crime_reports';
+        
+        $data = array(
+            'title' => $this->title,
+            'description' => $this->description,
+            'category' => $this->category,
+            'date_time' => $this->date_time,
+            'location' => $this->location,
+            'zone' => $this->zone,
+            'status' => $this->status ? $this->status : 'pending',
+            'result' => $this->result,
+            'reporter_id' => $this->reporter_id ? $this->reporter_id : get_current_user_id(),
+            'created_at' => current_time('mysql'),
+            'updated_at' => current_time('mysql'),
+        );
+        
+        $format = array(
+            '%s', // title
+            '%s', // description
+            '%s', // category
+            '%s', // date_time
+            '%s', // location
+            '%s', // zone
+            '%s', // status
+            '%s', // result
+            '%d', // reporter_id
+            '%s', // created_at
+            '%s', // updated_at
+        );
+        
+        // Update existing record
+        if (!empty($this->id)) {
+            $wpdb->update(
+                $table_name,
+                $data,
+                array('id' => $this->id),
+                $format,
+                array('%d')
+            );
+            
+            // Save security groups
+            $this->save_security_groups();
+            
+            // Save photos
+            $this->save_photos();
+            
+            return $this->id;
+        }
+        
+        // Insert new record
+        $wpdb->insert($table_name, $data, $format);
+        $this->id = $wpdb->insert_id;
+        
+        if ($this->id) {
+            // Save security groups
+            $this->save_security_groups();
+            
+            // Save photos
+            $this->save_photos();
+            
+            // Send notifications
+            $this->send_notifications();
+            
+            return $this->id;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Save security groups relation to this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     */
+    private function save_security_groups() {
+        global $wpdb;
+        
+        if (empty($this->security_groups)) {
             return;
         }
         
-        // Verify nonce
-        if (!wp_verify_nonce($_POST['crime_report_meta_box_nonce'], 'crime_report_meta_box')) {
+        $table_name = $wpdb->prefix . 'sandbaai_crime_report_security_groups';
+        
+        // Delete existing relations
+        $wpdb->delete(
+            $table_name,
+            array('crime_report_id' => $this->id),
+            array('%d')
+        );
+        
+        // Insert new relations
+        foreach ($this->security_groups as $security_group_id) {
+            $wpdb->insert(
+                $table_name,
+                array(
+                    'crime_report_id' => $this->id,
+                    'security_group_id' => $security_group_id,
+                ),
+                array('%d', '%d')
+            );
+        }
+    }
+
+    /**
+     * Save photos related to this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     */
+    private function save_photos() {
+        global $wpdb;
+        
+        if (empty($this->photos)) {
             return;
         }
         
-        // If this is an autosave, we don't want to do anything
-        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        $table_name = $wpdb->prefix . 'sandbaai_crime_report_photos';
+        
+        // Process photos
+        foreach ($this->photos as $photo) {
+            if (is_array($photo) && isset($photo['tmp_name'])) {
+                // This is a new upload
+                $upload = $this->upload_photo($photo);
+                
+                if ($upload) {
+                    $wpdb->insert(
+                        $table_name,
+                        array(
+                            'crime_report_id' => $this->id,
+                            'file_path' => $upload['file'],
+                        ),
+                        array('%d', '%s')
+                    );
+                }
+            }
+        }
+    }
+
+    /**
+     * Upload a photo to the WordPress media library.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @param    array    $file    The file data.
+     * @return   array|false       The uploaded file data, or false on failure.
+     */
+    private function upload_photo($file) {
+        if (!function_exists('wp_handle_upload')) {
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
+        }
+        
+        $upload_overrides = array('test_form' => false);
+        
+        return wp_handle_upload($file, $upload_overrides);
+    }
+
+    /**
+     * Send notifications about this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     */
+    private function send_notifications() {
+        // Call WhatsApp notification class
+        if (class_exists('Sandbaai_WhatsApp_Notifications')) {
+            $whatsapp = new Sandbaai_WhatsApp_Notifications();
+            $whatsapp->send_crime_report_notification($this);
+        }
+        
+        // Email notifications
+        $this->send_email_notifications();
+    }
+
+    /**
+     * Send email notifications about this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     */
+    private function send_email_notifications() {
+        $subject = 'New Crime Report: ' . $this->title;
+        
+        $message = "A new crime has been reported.\n\n";
+        $message .= "Title: " . $this->title . "\n";
+        $message .= "Category: " . $this->category . "\n";
+        $message .= "Date/Time: " . $this->date_time . "\n";
+        $message .= "Location: " . $this->location . "\n";
+        $message .= "Zone: " . $this->zone . "\n";
+        $message .= "Description: " . $this->description . "\n\n";
+        $message .= "View this report in the admin panel: " . admin_url('admin.php?page=sandbaai-crime-reports&action=view&id=' . $this->id);
+        
+        // Get admin email
+        $admin_email = get_option('admin_email');
+        
+        // Send email to admin
+        wp_mail($admin_email, $subject, $message);
+        
+        // Send email to security groups
+        $this->notify_security_groups($subject, $message);
+    }
+
+    /**
+     * Notify security groups about this crime report.
+     *
+     * @since    1.0.0
+     * @access   private
+     * @param    string    $subject    The email subject.
+     * @param    string    $message    The email message.
+     */
+    private function notify_security_groups($subject, $message) {
+        global $wpdb;
+        
+        if (empty($this->security_groups)) {
             return;
         }
         
-        // Check the user's permissions
-        if (!current_user_can('edit_post', $post_id)) {
-            return;
-        }
+        $table_name = $wpdb->prefix . 'sandbaai_security_groups';
         
-        // Save details
-        if (isset($_POST['crime_date'])) {
-            update_post_meta($post_id, '_crime_date', sanitize_text_field($_POST['crime_date']));
-        }
-        
-        if (isset($_POST['crime_time'])) {
-            update_post_meta($post_id, '_crime_time', sanitize_text_field($_POST['crime_time']));
-        }
-        
-        if (isset($_POST['reporter_contact'])) {
-            update_post_meta($post_id, '_reporter_contact', sanitize_text_field($_POST['reporter_contact']));
-        }
-        
-        // Save location
-        if (isset($_POST['crime_location'])) {
-            update_post_meta($post_id, '_crime_location', sanitize_text_field($_POST['crime_location']));
-        }
-        
-        if (isset($_POST['crime_zone'])) {
-            update_post_meta($post_id, '_crime_zone', sanitize_key($_POST['crime_zone']));
-        }
-        
-        if (isset($_POST['crime_latitude']) && is_numeric($_POST['crime_latitude'])) {
-            update_post_meta($post_id, '_crime_latitude', floatval($_POST['crime_latitude']));
-        }
-        
-        if (isset($_POST['crime_longitude']) && is_numeric($_POST['crime_longitude'])) {
-            update_post_meta($post_id, '_crime_longitude', floatval($_POST['crime_longitude']));
-        }
-        
-        // Save response details
-        if (isset($_POST['crime_status'])) {
-            update_post_meta($post_id, '_crime_status', sanitize_key($_POST['crime_status']));
-        }
-        
-        if (isset($_POST['security_groups']) && is_array($_POST['security_groups'])) {
-            $security_groups = array_map('intval', $_POST['security_groups']);
-            update_post_meta($post_id, '_security_groups', $security_groups);
-        } else {
-            update_post_meta($post_id, '_security_groups', array());
-        }
-        
-        if (isset($_POST['resolution_notes'])) {
-            update_post_meta($post_id, '_resolution_notes', sanitize_textarea_field($_POST['resolution_notes']));
+        foreach ($this->security_groups as $security_group_id) {
+            $security_group = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT email FROM $table_name WHERE id = %d",
+                    $security_group_id
+                )
+            );
+            
+            if ($security_group && !empty($security_group->email)) {
+                wp_mail($security_group->email, $subject, $message);
+            }
         }
     }
 
     /**
-     * Add crime reports admin menu
+     * Delete this crime report.
+     *
+     * @since    1.0.0
+     * @return   bool    True on success, false on failure.
      */
-    public function add_admin_menu() {
-        add_submenu_page(
-            'sandbaai-crime', // Parent slug
-            __('Crime Reports', 'sandbaai-crime'),
-            __('Crime Reports', 'sandbaai-crime'),
-            'edit_posts',
-            'edit.php?post_type=crime_report'
+    public function delete() {
+        global $wpdb;
+        
+        if (empty($this->id)) {
+            return false;
+        }
+        
+        $table_name = $wpdb->prefix . 'sandbaai_crime_reports';
+        
+        // Delete security groups relations
+        $wpdb->delete(
+            $wpdb->prefix . 'sandbaai_crime_report_security_groups',
+            array('crime_report_id' => $this->id),
+            array('%d')
         );
         
-        add_submenu_page(
-            'sandbaai-crime', // Parent slug
-            __('Crime Categories', 'sandbaai-crime'),
-            __('Crime Categories', 'sandbaai-crime'),
-            'manage_categories',
-            'edit-tags.php?taxonomy=crime_category&post_type=crime_report'
-        );
-    }
-
-    /**
-     * Shortcode for crime reporting form
-     */
-    public function crime_reporting_form_shortcode($atts) {
-        $atts = shortcode_atts(array(
-            'title' => __('Report a Crime', 'sandbaai-crime'),
-        ), $atts);
-        
-        ob_start();
-        include(SANDBAAI_CRIME_PLUGIN_DIR . 'public/views/crime-reporting-form.php');
-        return ob_get_clean();
-    }
-
-    /**
-     * Shortcode for crime statistics display
-     */
-    public function crime_statistics_shortcode($atts) {
-        $atts = shortcode_atts(array(
-            'title' => __('Crime Statistics', 'sandbaai-crime'),
-            'show_map' => true,
-            'show_chart' => true,
-            'limit' => 50,
-        ), $atts);
-        
-        ob_start();
-        include(SANDBAAI_CRIME_PLUGIN_DIR . 'public/views/crime-statistics-display.php');
-        return ob_get_clean();
-    }
-
-    /**
-     * Handle crime report AJAX submission
-     */
-    public function ajax_submit_crime_report() {
-        // Verify nonce
-        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'crime_report_submit')) {
-            wp_send_json_error(array('message' => __('Security check failed', 'sandbaai-crime')));
-        }
-        
-        $title = isset($_POST['title']) ? sanitize_text_field($_POST['title']) : '';
-        $description = isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
-        $category = isset($_POST['category']) ? intval($_POST['category']) : 0;
-        $date = isset($_POST['date']) ? sanitize_text_field($_POST['date']) : '';
-        $time = isset($_POST['time']) ? sanitize_text_field($_POST['time']) : '';
-        $location = isset($_POST['location']) ? sanitize_text_field($_POST['location']) : '';
-        $zone = isset($_POST['zone']) ? sanitize_key($_POST['zone']) : '';
-        $latitude = isset($_POST['latitude']) ? floatval($_POST['latitude']) : '';
-        $longitude = isset($_POST['longitude']) ? floatval($_POST['longitude']) : '';
-        $contact = isset($_POST['contact']) ? sanitize_text_field($_POST['contact']) : '';
-        
-        if (empty($title) || empty($description) || empty($category) || empty($date) || empty($location)) {
-            wp_send_json_error(array('message' => __('Please fill in all required fields', 'sandbaai-crime')));
-        }
-        
-        // Create post
-        $post_data = array(
-            'post_title' => $title,
-            'post_content' => $description,
-            'post_status' => current_user_can('publish_posts') ? 'publish' : 'pending',
-            'post_type' => 'crime_report',
+        // Delete photos
+        $wpdb->delete(
+            $wpdb->prefix . 'sandbaai_crime_report_photos',
+            array('crime_report_id' => $this->id),
+            array('%d')
         );
         
-        $post_id = wp_insert_post($post_data);
+        // Delete crime report
+        $result = $wpdb->delete(
+            $table_name,
+            array('id' => $this->id),
+            array('%d')
+        );
         
-        if (is_wp_error($post_id)) {
-            wp_send_json_error(array('message' => $post_id->get_error_message()));
+        return $result !== false;
+    }
+
+    /**
+     * Approve this crime report.
+     *
+     * @since    1.0.0
+     * @return   bool    True on success, false on failure.
+     */
+    public function approve() {
+        $this->status = 'approved';
+        return $this->save();
+    }
+
+    /**
+     * Reject this crime report.
+     *
+     * @since    1.0.0
+     * @return   bool    True on success, false on failure.
+     */
+    public function reject() {
+        $this->status = 'rejected';
+        return $this->save();
+    }
+
+    /**
+     * Get crime reports with optional filtering.
+     *
+     * @since    1.0.0
+     * @param    array    $args    The filter arguments.
+     * @return   array             The crime report objects.
+     */
+    public static function get_crime_reports($args = array()) {
+        global $wpdb;
+        
+        $defaults = array(
+            'category' => '',
+            'zone' => '',
+            'status' => '',
+            'result' => '',
+            'start_date' => '',
+            'end_date' => '',
+            'security_group_id' => 0,
+            'limit' => 20,
+            'offset' => 0,
+            'orderby' => 'date_time',
+            'order' => 'DESC'
+        );
+        
+        $args = wp_parse_args($args, $defaults);
+        
+        $table_name = $wpdb->prefix . 'sandbaai_crime_reports';
+        $sg_table_name = $wpdb->prefix . 'sandbaai_crime_report_security_groups';
+        
+        $query = "SELECT r.* FROM $table_name r";
+        $where = array();
+        $params = array();
+        
+        // Join security groups if needed
+        if (!empty($args['security_group_id'])) {
+            $query .= " INNER JOIN $sg_table_name sg ON r.id = sg.crime_report_id";
+            $where[] = "sg.security_group_id = %d";
+            $params[] = $args['security_group_id'];
         }
         
-        // Set category
-        wp_set_object_terms($post_id, array($category), 'crime_category');
-        
-        // Save metadata
-        update_post_meta($post_id, '_crime_date', $date);
-        update_post_meta($post_id, '_crime_time', $time);
-        update_post_meta($post_id, '_crime_location', $location);
-        update_post_meta($post_id, '_crime_zone', $zone);
-        update_post_meta($post_id, '_crime_latitude', $latitude);
-        update_post_meta($post_id, '_crime_longitude', $longitude);
-        update_post_meta($post_id, '_reporter_contact', $contact);
-        update_post_meta($post_id, '_crime_status', 'reported');
-        
-        // Save reporter if logged in
-        if (is_user_logged_in()) {
-            $user_id = get_current_user_id();
-            update_post_meta($post_id, '_reporter_id', $user_id);
+        // Add filters
+        if (!empty($args['category'])) {
+            $where[] = "r.category = %s";
+            $params[] = $args['category'];
         }
         
-        // Handle image upload if present
-        if (!empty($_FILES
+        if (!empty($args['zone'])) {
+            $where[] = "r.zone = %s";
+            $params[] = $args['zone'];
+        }
+        
+        if (!empty($args['status'])) {
+            $where[] = "r.status = %s";
+            $params[] = $args['status'];
+        }
+        
+        if (!empty($args['result'])) {
+            $where[] = "r.result = %s";
+            $params[] = $args['result'];
+        }
+        
+        if (!empty($args['start_date'])) {
+            $where[] = "r.date_time >= %s";
+            $params[] = $args['start_date'];
+        }
+        
+        if (!empty($args['end_date'])) {
+            $where[] = "r.date_time <= %s";
+            $params[] = $args['end_date'];
+        }
+        
+        // Add WHERE clause if needed
+        if (!empty($where)) {
+            $query .= " WHERE " . implode(" AND ", $where);
+        }
+        
+        // Add ORDER BY clause
+        $query .= " ORDER BY r." . esc_sql($args['orderby']) . " " . esc_sql($args['order']);
+        
+        // Add LIMIT clause
+        $query .= " LIMIT %d OFFSET %d";
+        $params[] = $args['limit'];
+        $params[] = $args['offset'];
+        
+        // Prepare the query
+        $query = $wpdb->prepare($query, $params);
+        
+        // Get results
+        $results = $wpdb->get_results($query);
+        
+        // Convert to objects
+        $crime_reports = array();
+        foreach ($results as $result) {
+            $crime_report = new self($result->id);
+            $crime_reports[] = $crime_report;
+        }
+        
+        return $crime_reports;
+    }
+
+    /**
+     * Count crime reports with optional filtering.
+     *
+     * @since    1.0.0
+     * @param    array    $args    The filter arguments.
+     * @return   int               The number of crime reports.
+     */
+    public static function count_crime_reports($args = array()) {
+        global $wpdb;
+        
+        $defaults = array(
+            'category' => '',
+            'zone' => '',
+            'status' => '',
+            'result' => '',
+            'start_date' => '',
+            'end_date' => '',
+            'security_group_id' => 0,
+        );
+        
+        $args = wp_parse_args($args, $defaults);
+        
+        $table_name = $wpdb->prefix . 'sandbaai_crime_reports';
+        $sg_table_name = $wpdb->prefix . 'sandbaai_crime_report_security_groups';
+        
+        $query = "SELECT COUNT(DISTINCT r.id) FROM $table_name r";
+        $where = array();
+        $params = array();
+        
+        // Join security groups if needed
+        if (!empty($args['security_group_id'])) {
+            $query .= " INNER JOIN $sg_table_name sg ON r.id = sg.crime_report_id";
+            $where[] = "sg.security_group_id = %d";
+            $params[] = $args['security_group_id'];
+        }
+        
+        // Add filters
+        if (!empty($args['category'])) {
+            $where[] = "r.category = %s";
+            $params[] = $args['category'];
+        }
+        
+        if (!empty($args['zone'])) {
+            $where[] = "r.zone = %s";
+            $params[] = $args['zone'];
+        }
+        
+        if (!empty($args['status'])) {
+            $where[] = "r.status = %s";
+            $params[] = $args['status'];
+        }
+        
+        if (!empty($args['result'])) {
+            $where[] = "r.result = %s";
+            $params[] = $args['result'];
+        }
+        
+        if (!empty($args['start_date'])) {
+            $where[] = "r.date_time >= %s";
+            $params[] = $args['start_date'];
+        }
+        
+        if (!empty($args['end_date'])) {
+            $where[] = "r.date_time <= %s";
+            $params[] = $args['end_date'];
+        }
+        
+        // Add WHERE clause if needed
+        if (!empty($where)) {
+            $query .= " WHERE " . implode(" AND ", $where);
+        }
+        
+        // Prepare the query
+        $query = $wpdb->prepare($query, $params);
+        
+        // Get result
+        return $wpdb->get_var($query);
+    }
+
+    /**
+     * Get crime statistics grouped by a field.
+     *
+     * @since    1.0.0
+     * @param    string    $group_by    The field to group by.
+     * @param    array     $args        The filter arguments.
+     * @return   array                  The crime statistics.
+     */
+    public static function get_crime_statistics($group_by, $args = array()) {
+        global $wpdb;
+        
+        $defaults = array(
+            'category' => '',
+            'zone' => '',
+            'status' => '',
+            'result' => '',
+            'start_date' => '',
+            'end_date' => '',
+            'security_group_id' => 0,
+        );
+        
+        $args = wp_parse_args($args, $defaults);
+        
+        $table_name = $wpdb->prefix . 'sandbaai_crime_reports';
+        $sg_table_name = $wpdb->prefix . 'sandbaai_crime_report_security_groups';
+        
+        // Validate group by field
+        $allowed_group_by = array('category', 'zone', 'status', 'result', 'DATE(date_time)');
+        if (!in_array($group_by, $allowed_group_by)) {
+            return array();
+        }
+        
+        $query = "SELECT $group_by as label, COUNT(*) as count FROM $table_name r";
+        $where = array();
+        $params = array();
+        
+        // Join security groups if needed
+        if (!empty($args['security_group_id'])) {
+            $query .= " INNER JOIN $sg_table_name sg ON r.id = sg.crime_report_id";
+            $where[] = "sg.security_group_id = %d";
+            $params[] = $args['security_group_id'];
+        }
+        
+        // Add filters
+        if (!empty($args['category'])) {
+            $where[] = "r.category = %s";
+            $params[] = $args['category'];
+        }
+        
+        if (!empty($args['zone'])) {
+            $where[] = "r.zone = %s";
+            $params[] = $args['zone'];
+        }
+        
+        if (!empty($args['status'])) {
+            $where[] = "r.status = %s";
+            $params[] = $args['status'];
+        }
+        
+        if (!empty($args['result'])) {
+            $where[] = "r.result = %s";
+            $params[] = $args['result'];
+        }
+        
+        if (!empty($args['start_date'])) {
+            $where[] = "r.date_time >= %s";
+            $params[] = $args['start_date'];
+        }
+        
+        if (!empty($args['end_date'])) {
+            $where[] = "r.date_time <= %s";
+            $params[] = $args['end_date'];
+        }
+        
+        // Add WHERE clause if needed
+        if (!empty($where)) {
+            $query .= " WHERE " . implode(" AND ", $where);
+        }
+        
+        // Add GROUP BY clause
+        $query .= " GROUP BY $group_by";
+        
+        // Prepare the query
+        $query = $wpdb->prepare($query, $params);
+        
+        // Get results
+        return $wpdb->get_results($query);
+    }
+
+    /**
+     * Get and set methods for properties
+     */
+    
+    public function get_id() {
+        return $this->id;
+    }
+    
+    public function get_title() {
+        return $this->title;
+    }
+    
+    public function set_title($title) {
+        $this->title = sanitize_text_field($title);
+    }
+    
+    public function get_description() {
+        return $this->description;
+    }
+    
+    public function set_description($description) {
+        $this->description = sanitize_textarea_field($description);
+    }
+    
+    public function get_category() {
+        return $this->category;
+    }
+    
+    public function set_category($category) {
+        $this->category = sanitize_text_field($category);
+    }
+    
+    public function get_date_time() {
+        return $this->date_time;
+    }
+    
+    public function set_date_time($date_time) {
+        $this->date_time = sanitize_text_field($date_time);
+    }
+    
+    public function get_location() {
+        return $this->location;
+    }
+    
+    public function set_location($location) {
+        $this->location = sanitize_text_field($location);
+    }
+    
+    public function get_zone() {
+        return $this->zone;
+    }
+    
+    public function set_zone($zone) {
+        $this->zone = sanitize_text_field($zone);
+    }
+    
+    public function get_status() {
+        return $this->status;
+    }
+    
+    public function set_status($status) {
+        $this->status = sanitize_text_field($status);
+    }
+    
+    public function get_result() {
+        return $this->result;
+    }
+    
+    public function set_result($result) {
+        $this->result = sanitize_text_field($result);
+    }
+    
+    public function get_security_groups() {
+        return $this->security_groups;
+    }
+    
+    public function set_security_groups($security_groups) {
+        $this->security_groups = array_map('intval', (array) $security_groups);
+    }
+    
+    public function get_photos() {
+        return $this->photos;
+    }
+    
+    public function set_photos($photos) {
+        $this->photos = (array) $photos;
+    }
+    
+    public function get_reporter_id() {
+        return $this->reporter_id;
+    }
+    
+    public function set_reporter_id($reporter_id) {
+        $this->reporter_id = intval($reporter_id);
+    }
+}
