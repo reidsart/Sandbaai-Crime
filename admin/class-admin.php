@@ -1,8 +1,9 @@
 <?php
+
 /**
  * The admin-specific functionality of the plugin.
  *
- * @link       https://github.com/reidsart/Sandbaai-Crime
+ * @link       https://www.reidsart.co.za
  * @since      1.0.0
  *
  * @package    Sandbaai_Crime
@@ -12,1187 +13,746 @@
 /**
  * The admin-specific functionality of the plugin.
  *
- * Defines the plugin name, version, and admin-specific hooks
+ * Defines the plugin name, version, and two examples hooks for how to
+ * enqueue the admin-specific stylesheet and JavaScript.
  *
  * @package    Sandbaai_Crime
  * @subpackage Sandbaai_Crime/admin
- * @author     Reid Sart
+ * @author     Reid Sart <reidsart@gmail.com>
  */
 class Sandbaai_Crime_Admin {
 
-    /**
-     * The ID of this plugin.
-     *
-     * @since    1.0.0
-     * @access   private
-     * @var      string    $plugin_name    The ID of this plugin.
-     */
-    private $plugin_name;
+	/**
+	 * The ID of this plugin.
+	 *
+	 * @since    1.0.0
+	 * @access   private
+	 * @var      string    $plugin_name    The ID of this plugin.
+	 */
+	private $plugin_name;
 
-    /**
-     * The version of this plugin.
-     *
-     * @since    1.0.0
-     * @access   private
-     * @var      string    $version    The current version of this plugin.
-     */
-    private $version;
+	/**
+	 * The version of this plugin.
+	 *
+	 * @since    1.0.0
+	 * @access   private
+	 * @var      string    $version    The current version of this plugin.
+	 */
+	private $version;
 
-    /**
-     * Initialize the class and set its properties.
-     *
-     * @since    1.0.0
-     * @param    string    $plugin_name       The name of this plugin.
-     * @param    string    $version           The version of this plugin.
-     */
-    public function __construct( $plugin_name, $version ) {
-        $this->plugin_name = $plugin_name;
-        $this->version = $version;
-    }
+	/**
+	 * Initialize the class and set its properties.
+	 *
+	 * @since    1.0.0
+	 * @param      string    $plugin_name       The name of this plugin.
+	 * @param      string    $version    The version of this plugin.
+	 */
+	public function __construct( $plugin_name, $version ) {
 
-    /**
-     * Register the stylesheets for the admin area.
-     *
-     * @since    1.0.0
-     */
-    public function enqueue_styles() {
-        wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/sandbaai-crime-admin.css', array(), $this->version, 'all' );
-    }
+		$this->plugin_name = $plugin_name;
+		$this->version = $version;
 
-    /**
-     * Register the JavaScript for the admin area.
-     *
-     * @since    1.0.0
-     */
-    public function enqueue_scripts() {
-        wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/sandbaai-crime-admin.js', array( 'jquery' ), $this->version, false );
-        
-        // Add localized script data for admin-specific JavaScript
-        wp_localize_script(
-            $this->plugin_name,
-            'sandbaai_crime_admin',
-            array(
-                'ajax_url' => admin_url( 'admin-ajax.php' ),
-                'nonce' => wp_create_nonce( 'sandbaai_crime_admin_nonce' ),
-                'confirm_delete' => __( 'Are you sure you want to delete this item?', 'sandbaai-crime' ),
-            )
-        );
-    }
+		// Add actions to set up admin menu and settings
+		add_action('admin_menu', array($this, 'add_admin_menu'));
+		add_action('admin_init', array($this, 'register_settings'));
+	}
 
-    /**
-     * Register the admin menu pages.
-     *
-     * @since    1.0.0
-     */
-    public function add_admin_menu() {
-        // Add main menu item
-        add_menu_page(
-            __( 'Sandbaai Crime', 'sandbaai-crime' ),
-            __( 'Sandbaai Crime', 'sandbaai-crime' ),
-            'manage_options',
-            'sandbaai-crime',
-            array( $this, 'display_dashboard_page' ),
-            'dashicons-shield',
-            30
-        );
+	/**
+	 * Register the stylesheets for the admin area.
+	 *
+	 * @since    1.0.0
+	 */
+	public function enqueue_styles() {
 
-        // Add dashboard submenu
-        add_submenu_page(
-            'sandbaai-crime',
-            __( 'Dashboard', 'sandbaai-crime' ),
-            __( 'Dashboard', 'sandbaai-crime' ),
-            'manage_options',
-            'sandbaai-crime',
-            array( $this, 'display_dashboard_page' )
-        );
+		/**
+		 * This function is provided for demonstration purposes only.
+		 *
+		 * An instance of this class should be passed to the run() function
+		 * defined in Sandbaai_Crime_Loader as all of the hooks are defined
+		 * in that particular class.
+		 *
+		 * The Sandbaai_Crime_Loader will then create the relationship
+		 * between the defined hooks and the functions defined in this
+		 * class.
+		 */
 
-        // Add crime reports submenu
-        add_submenu_page(
-            'sandbaai-crime',
-            __( 'Crime Reports', 'sandbaai-crime' ),
-            __( 'Crime Reports', 'sandbaai-crime' ),
-            'manage_options',
-            'edit.php?post_type=crime_report'
-        );
+		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/sandbaai-crime-admin.css', array(), $this->version, 'all' );
 
-        // Add security groups submenu
-        add_submenu_page(
-            'sandbaai-crime',
-            __( 'Security Groups', 'sandbaai-crime' ),
-            __( 'Security Groups', 'sandbaai-crime' ),
-            'manage_options',
-            'edit.php?post_type=security_group'
-        );
+	}
 
-        // Add submit crime report submenu
-        add_submenu_page(
-            'sandbaai-crime',
-            __( 'Add Crime Report', 'sandbaai-crime' ),
-            __( 'Add Crime Report', 'sandbaai-crime' ),
-            'edit_posts',
-            'sandbaai-crime-add-report',
-            array( $this, 'display_crime_report_form' )
-        );
+	/**
+	 * Register the JavaScript for the admin area.
+	 *
+	 * @since    1.0.0
+	 */
+	public function enqueue_scripts() {
 
-        // Add Statistics submenu
-        add_submenu_page(
-            'sandbaai-crime',
-            __( 'Crime Statistics', 'sandbaai-crime' ),
-            __( 'Crime Statistics', 'sandbaai-crime' ),
-            'read',
-            'sandbaai-crime-statistics',
-            array( $this, 'display_crime_statistics' )
-        );
+		/**
+		 * This function is provided for demonstration purposes only.
+		 *
+		 * An instance of this class should be passed to the run() function
+		 * defined in Sandbaai_Crime_Loader as all of the hooks are defined
+		 * in that particular class.
+		 *
+		 * The Sandbaai_Crime_Loader will then create the relationship
+		 * between the defined hooks and the functions defined in this
+		 * class.
+		 */
 
-        // Add Settings submenu
-        add_submenu_page(
-            'sandbaai-crime',
-            __( 'Settings', 'sandbaai-crime' ),
-            __( 'Settings', 'sandbaai-crime' ),
-            'manage_options',
-            'sandbaai-crime-settings',
-            array( $this, 'display_settings_page' )
-        );
-    }
+		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/sandbaai-crime-admin.js', array( 'jquery' ), $this->version, false );
 
-    /**
-     * Display the dashboard page.
-     *
-     * @since    1.0.0
-     */
-    public function display_dashboard_page() {
-        // Get statistics for the dashboard
-        $stats = $this->get_crime_statistics();
-        
-        // Include the dashboard view
-        include plugin_dir_path( __FILE__ ) . 'views/dashboard.php';
-    }
+	}
 
-    /**
-     * Display the crime report submission form.
-     *
-     * @since    1.0.0
-     */
-    public function display_crime_report_form() {
-        // Get security groups for dropdown
-        $security_groups = $this->get_security_groups();
-        
-        // Get crime categories for dropdown
-        $crime_categories = $this->get_crime_categories();
-        
-        // Include the crime report form view
-        include plugin_dir_path( __FILE__ ) . 'views/crime-report-form.php';
-    }
+	/**
+	 * Add admin menu pages for the plugin
+	 *
+	 * @since    1.0.0
+	 */
+	public function add_admin_menu() {
+		// Add main menu page
+		add_menu_page(
+			'Sandbaai Crime Settings',
+			'Sandbaai Crime',
+			'manage_options',
+			'sandbaai-crime',
+			array($this, 'display_plugin_admin_page'),
+			'dashicons-shield',
+			30
+		);
 
-    /**
-     * Display the crime statistics page.
-     *
-     * @since    1.0.0
-     */
-    public function display_crime_statistics() {
-        // Get statistics data
-        $stats = $this->get_crime_statistics();
-        
-        // Include the statistics view
-        include plugin_dir_path( __FILE__ ) . 'views/crime-statistics.php';
-    }
+		// Add submenus
+		add_submenu_page(
+			'sandbaai-crime',
+			'Dashboard',
+			'Dashboard',
+			'manage_options',
+			'sandbaai-crime',
+			array($this, 'display_plugin_admin_page')
+		);
 
-    /**
-     * Display the settings page.
-     *
-     * @since    1.0.0
-     */
-    public function display_settings_page() {
-        // Process form submission if needed
-        if ( isset( $_POST['sandbaai_crime_settings_nonce'] ) && 
-             wp_verify_nonce( $_POST['sandbaai_crime_settings_nonce'], 'sandbaai_crime_settings' ) ) {
-            $this->save_settings();
-        }
-        
-        // Get current settings
-        $settings = get_option( 'sandbaai_crime_settings', array() );
-        
-        // Include the settings view
-        include plugin_dir_path( __FILE__ ) . 'views/settings.php';
-    }
+		add_submenu_page(
+			'sandbaai-crime',
+			'Crime Reports',
+			'Crime Reports',
+			'manage_options',
+			'sandbaai-crime-reports',
+			array($this, 'display_crime_reports_page')
+		);
 
-    /**
-     * Save plugin settings.
-     *
-     * @since    1.0.0
-     */
-    private function save_settings() {
-        if ( ! current_user_can( 'manage_options' ) ) {
-            return;
-        }
+		add_submenu_page(
+			'sandbaai-crime',
+			'Security Groups',
+			'Security Groups',
+			'manage_options',
+			'sandbaai-security-groups',
+			array($this, 'display_security_groups_page')
+		);
 
-        $settings = array();
+		add_submenu_page(
+			'sandbaai-crime',
+			'WhatsApp Settings',
+			'WhatsApp Settings',
+			'manage_options',
+			'sandbaai-whatsapp-settings',
+			array($this, 'display_whatsapp_settings_page')
+		);
+	}
 
-        // WhatsApp Notification Settings
-        $settings['whatsapp_enabled'] = isset( $_POST['whatsapp_enabled'] ) ? 1 : 0;
-        $settings['whatsapp_api_key'] = sanitize_text_field( $_POST['whatsapp_api_key'] );
-        $settings['whatsapp_recipients'] = sanitize_textarea_field( $_POST['whatsapp_recipients'] );
-        
-        // Map Settings
-        $settings['map_api_key'] = sanitize_text_field( $_POST['map_api_key'] );
-        $settings['default_lat'] = floatval( $_POST['default_lat'] );
-        $settings['default_lng'] = floatval( $_POST['default_lng'] );
-        $settings['default_zoom'] = intval( $_POST['default_zoom'] );
-        
-        // Email Notification Settings
-        $settings['email_notifications'] = isset( $_POST['email_notifications'] ) ? 1 : 0;
-        $settings['notification_email'] = sanitize_email( $_POST['notification_email'] );
-        
-        // Form Settings
-        $settings['require_approval'] = isset( $_POST['require_approval'] ) ? 1 : 0;
-        $settings['allow_anonymous'] = isset( $_POST['allow_anonymous'] ) ? 1 : 0;
-        
-        // Update settings
-        update_option( 'sandbaai_crime_settings', $settings );
-        
-        // Add admin notice
-        add_settings_error(
-            'sandbaai_crime_settings',
-            'settings_updated',
-            __( 'Settings saved successfully.', 'sandbaai-crime' ),
-            'updated'
-        );
-    }
+	/**
+	 * Register settings for the plugin
+	 *
+	 * @since    1.0.0
+	 */
+	public function register_settings() {
+		// Register general settings
+		register_setting('sandbaai_crime_general', 'sandbaai_crime_general_options');
+		
+		add_settings_section(
+			'sandbaai_crime_general_section',
+			'General Settings',
+			array($this, 'general_settings_section_callback'),
+			'sandbaai_crime_general'
+		);
+		
+		add_settings_field(
+			'enable_crime_reporting',
+			'Enable Crime Reporting',
+			array($this, 'enable_crime_reporting_callback'),
+			'sandbaai_crime_general',
+			'sandbaai_crime_general_section'
+		);
 
-    /**
-     * Register meta boxes for crime reports.
-     *
-     * @since    1.0.0
-     */
-    public function add_meta_boxes() {
-        add_meta_box(
-            'crime_report_details',
-            __( 'Crime Report Details', 'sandbaai-crime' ),
-            array( $this, 'render_crime_report_metabox' ),
-            'crime_report',
-            'normal',
-            'high'
-        );
-        
-        add_meta_box(
-            'crime_report_location',
-            __( 'Crime Location', 'sandbaai-crime' ),
-            array( $this, 'render_location_metabox' ),
-            'crime_report',
-            'normal',
-            'high'
-        );
-        
-        add_meta_box(
-            'security_group_details',
-            __( 'Security Group Details', 'sandbaai-crime' ),
-            array( $this, 'render_security_group_metabox' ),
-            'security_group',
-            'normal',
-            'high'
-        );
-    }
+		add_settings_field(
+			'reporting_form_page',
+			'Reporting Form Page',
+			array($this, 'reporting_form_page_callback'),
+			'sandbaai_crime_general',
+			'sandbaai_crime_general_section'
+		);
 
-    /**
-     * Render the crime report meta box.
-     *
-     * @since    1.0.0
-     * @param    WP_Post    $post    The post object.
-     */
-    public function render_crime_report_metabox( $post ) {
-        // Add nonce for security
-        wp_nonce_field( 'sandbaai_crime_report_meta', 'sandbaai_crime_report_nonce' );
-        
-        // Get the saved meta values
-        $crime_type = get_post_meta( $post->ID, '_crime_type', true );
-        $crime_date = get_post_meta( $post->ID, '_crime_date', true );
-        $crime_time = get_post_meta( $post->ID, '_crime_time', true );
-        $crime_status = get_post_meta( $post->ID, '_crime_status', true );
-        $security_groups = get_post_meta( $post->ID, '_security_groups', true );
-        
-        // Get crime categories for dropdown
-        $crime_categories = $this->get_crime_categories();
-        
-        // Get security groups for multiselect
-        $all_security_groups = $this->get_security_groups();
-        
-        // Include the metabox view
-        include plugin_dir_path( __FILE__ ) . 'views/metaboxes/crime-report-details.php';
-    }
+		// Register WhatsApp notification settings
+		register_setting('sandbaai_crime_whatsapp', 'sandbaai_crime_whatsapp_options');
+		
+		add_settings_section(
+			'sandbaai_crime_whatsapp_section',
+			'WhatsApp Notification Settings',
+			array($this, 'whatsapp_settings_section_callback'),
+			'sandbaai_crime_whatsapp'
+		);
+		
+		add_settings_field(
+			'whatsapp_api_key',
+			'WhatsApp API Key',
+			array($this, 'whatsapp_api_key_callback'),
+			'sandbaai_crime_whatsapp',
+			'sandbaai_crime_whatsapp_section'
+		);
 
-    /**
-     * Render the location meta box.
-     *
-     * @since    1.0.0
-     * @param    WP_Post    $post    The post object.
-     */
-    public function render_location_metabox( $post ) {
-        // Get the saved meta values
-        $address = get_post_meta( $post->ID, '_crime_address', true );
-        $zone = get_post_meta( $post->ID, '_crime_zone', true );
-        $latitude = get_post_meta( $post->ID, '_crime_latitude', true );
-        $longitude = get_post_meta( $post->ID, '_crime_longitude', true );
-        
-        // Get settings for map defaults
-        $settings = get_option( 'sandbaai_crime_settings', array() );
-        $default_lat = isset( $settings['default_lat'] ) ? $settings['default_lat'] : -34.397;
-        $default_lng = isset( $settings['default_lng'] ) ? $settings['default_lng'] : 19.153;
-        $default_zoom = isset( $settings['default_zoom'] ) ? $settings['default_zoom'] : 14;
-        
-        // Include the metabox view
-        include plugin_dir_path( __FILE__ ) . 'views/metaboxes/crime-report-location.php';
-    }
+		add_settings_field(
+			'whatsapp_template_message',
+			'WhatsApp Template Message',
+			array($this, 'whatsapp_template_message_callback'),
+			'sandbaai_crime_whatsapp',
+			'sandbaai_crime_whatsapp_section'
+		);
 
-    /**
-     * Render the security group meta box.
-     *
-     * @since    1.0.0
-     * @param    WP_Post    $post    The post object.
-     */
-    public function render_security_group_metabox( $post ) {
-        // Add nonce for security
-        wp_nonce_field( 'sandbaai_security_group_meta', 'sandbaai_security_group_nonce' );
-        
-        // Get the saved meta values
-        $contact_name = get_post_meta( $post->ID, '_contact_name', true );
-        $contact_phone = get_post_meta( $post->ID, '_contact_phone', true );
-        $contact_email = get_post_meta( $post->ID, '_contact_email', true );
-        $website = get_post_meta( $post->ID, '_website', true );
-        $address = get_post_meta( $post->ID, '_address', true );
-        
-        // Include the metabox view
-        include plugin_dir_path( __FILE__ ) . 'views/metaboxes/security-group-details.php';
-    }
+		// Register Map settings
+		register_setting('sandbaai_crime_map', 'sandbaai_crime_map_options');
+		
+		add_settings_section(
+			'sandbaai_crime_map_section',
+			'Map Settings',
+			array($this, 'map_settings_section_callback'),
+			'sandbaai_crime_map'
+		);
+		
+		add_settings_field(
+			'map_center_lat',
+			'Default Map Center Latitude',
+			array($this, 'map_center_lat_callback'),
+			'sandbaai_crime_map',
+			'sandbaai_crime_map_section'
+		);
 
-    /**
-     * Save crime report meta data.
-     *
-     * @since    1.0.0
-     * @param    int       $post_id    The post ID.
-     * @param    WP_Post   $post       The post object.
-     */
-    public function save_crime_report_meta( $post_id, $post ) {
-        // Check if our nonce is set
-        if ( ! isset( $_POST['sandbaai_crime_report_nonce'] ) ) {
-            return;
-        }
+		add_settings_field(
+			'map_center_lng',
+			'Default Map Center Longitude',
+			array($this, 'map_center_lng_callback'),
+			'sandbaai_crime_map',
+			'sandbaai_crime_map_section'
+		);
 
-        // Verify the nonce
-        if ( ! wp_verify_nonce( $_POST['sandbaai_crime_report_nonce'], 'sandbaai_crime_report_meta' ) ) {
-            return;
-        }
+		add_settings_field(
+			'map_zoom_level',
+			'Default Map Zoom Level',
+			array($this, 'map_zoom_level_callback'),
+			'sandbaai_crime_map',
+			'sandbaai_crime_map_section'
+		);
+	}
 
-        // If this is an autosave, we don't want to do anything
-        if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
-            return;
-        }
+	/**
+	 * Display the main admin page
+	 *
+	 * @since    1.0.0
+	 */
+	public function display_plugin_admin_page() {
+		include_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/partials/sandbaai-crime-admin-display.php';
+	}
 
-        // Check the user's permissions
-        if ( 'crime_report' !== $post->post_type ) {
-            return;
-        }
+	/**
+	 * Display the crime reports admin page
+	 *
+	 * @since    1.0.0
+	 */
+	public function display_crime_reports_page() {
+		include_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/partials/sandbaai-crime-reports-display.php';
+	}
 
-        if ( ! current_user_can( 'edit_post', $post_id ) ) {
-            return;
-        }
+	/**
+	 * Display the security groups admin page
+	 *
+	 * @since    1.0.0
+	 */
+	public function display_security_groups_page() {
+		include_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/partials/sandbaai-security-groups-display.php';
+	}
 
-        // Save crime report meta data
-        if ( isset( $_POST['crime_type'] ) ) {
-            update_post_meta( $post_id, '_crime_type', sanitize_text_field( $_POST['crime_type'] ) );
-        }
-        
-        if ( isset( $_POST['crime_date'] ) ) {
-            update_post_meta( $post_id, '_crime_date', sanitize_text_field( $_POST['crime_date'] ) );
-        }
-        
-        if ( isset( $_POST['crime_time'] ) ) {
-            update_post_meta( $post_id, '_crime_time', sanitize_text_field( $_POST['crime_time'] ) );
-        }
-        
-        if ( isset( $_POST['crime_status'] ) ) {
-            update_post_meta( $post_id, '_crime_status', sanitize_text_field( $_POST['crime_status'] ) );
-        }
-        
-        if ( isset( $_POST['security_groups'] ) ) {
-            update_post_meta( $post_id, '_security_groups', array_map( 'absint', $_POST['security_groups'] ) );
-        } else {
-            update_post_meta( $post_id, '_security_groups', array() );
-        }
-        
-        // Save location data
-        if ( isset( $_POST['crime_address'] ) ) {
-            update_post_meta( $post_id, '_crime_address', sanitize_text_field( $_POST['crime_address'] ) );
-        }
-        
-        if ( isset( $_POST['crime_zone'] ) ) {
-            update_post_meta( $post_id, '_crime_zone', sanitize_text_field( $_POST['crime_zone'] ) );
-        }
-        
-        if ( isset( $_POST['crime_latitude'] ) ) {
-            update_post_meta( $post_id, '_crime_latitude', floatval( $_POST['crime_latitude'] ) );
-        }
-        
-        if ( isset( $_POST['crime_longitude'] ) ) {
-            update_post_meta( $post_id, '_crime_longitude', floatval( $_POST['crime_longitude'] ) );
-        }
-        
-        // Trigger notifications if it's a new report or status changed
-        $old_status = get_post_meta( $post_id, '_crime_status', true );
-        $new_status = isset( $_POST['crime_status'] ) ? sanitize_text_field( $_POST['crime_status'] ) : '';
-        
-        if ( $post->post_status === 'publish' && ( $old_status !== $new_status || get_post_meta( $post_id, '_notified', true ) !== 'yes' ) ) {
-            $this->send_notifications( $post_id );
-            update_post_meta( $post_id, '_notified', 'yes' );
-        }
-    }
+	/**
+	 * Display the WhatsApp settings admin page
+	 *
+	 * @since    1.0.0
+	 */
+	public function display_whatsapp_settings_page() {
+		include_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/partials/sandbaai-whatsapp-settings-display.php';
+	}
 
-    /**
-     * Save security group meta data.
-     *
-     * @since    1.0.0
-     * @param    int       $post_id    The post ID.
-     * @param    WP_Post   $post       The post object.
-     */
-    public function save_security_group_meta( $post_id, $post ) {
-        // Check if our nonce is set
-        if ( ! isset( $_POST['sandbaai_security_group_nonce'] ) ) {
-            return;
-        }
+	/**
+	 * Settings section callbacks
+	 */
+	public function general_settings_section_callback() {
+		echo '<p>Configure general settings for the Sandbaai Crime plugin.</p>';
+	}
 
-        // Verify the nonce
-        if ( ! wp_verify_nonce( $_POST['sandbaai_security_group_nonce'], 'sandbaai_security_group_meta' ) ) {
-            return;
-        }
+	public function whatsapp_settings_section_callback() {
+		echo '<p>Configure WhatsApp notification settings. These settings are used to send alerts when new crime reports are submitted.</p>';
+	}
 
-        // If this is an autosave, we don't want to do anything
-        if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
-            return;
-        }
+	public function map_settings_section_callback() {
+		echo '<p>Configure map settings for displaying crime statistics.</p>';
+	}
 
-        // Check the user's permissions
-        if ( 'security_group' !== $post->post_type ) {
-            return;
-        }
+	/**
+	 * Settings field callbacks - General
+	 */
+	public function enable_crime_reporting_callback() {
+		$options = get_option('sandbaai_crime_general_options');
+		$checked = isset($options['enable_crime_reporting']) ? $options['enable_crime_reporting'] : 1;
+		?>
+		<input type="checkbox" id="enable_crime_reporting" name="sandbaai_crime_general_options[enable_crime_reporting]" value="1" <?php checked(1, $checked, true); ?> />
+		<label for="enable_crime_reporting">Enable crime reporting form on the frontend</label>
+		<?php
+	}
 
-        if ( ! current_user_can( 'edit_post', $post_id ) ) {
-            return;
-        }
+	public function reporting_form_page_callback() {
+		$options = get_option('sandbaai_crime_general_options');
+		$selected_page = isset($options['reporting_form_page']) ? $options['reporting_form_page'] : 0;
+		
+		wp_dropdown_pages(array(
+			'name' => 'sandbaai_crime_general_options[reporting_form_page]',
+			'selected' => $selected_page,
+			'show_option_none' => 'Select a page',
+			'option_none_value' => '0'
+		));
+		echo '<p class="description">Select the page where the crime reporting form will be displayed.</p>';
+	}
 
-        // Save security group meta data
-        if ( isset( $_POST['contact_name'] ) ) {
-            update_post_meta( $post_id, '_contact_name', sanitize_text_field( $_POST['contact_name'] ) );
-        }
-        
-        if ( isset( $_POST['contact_phone'] ) ) {
-            update_post_meta( $post_id, '_contact_phone', sanitize_text_field( $_POST['contact_phone'] ) );
-        }
-        
-        if ( isset( $_POST['contact_email'] ) ) {
-            update_post_meta( $post_id, '_contact_email', sanitize_email( $_POST['contact_email'] ) );
-        }
-        
-        if ( isset( $_POST['website'] ) ) {
-            update_post_meta( $post_id, '_website', esc_url_raw( $_POST['website'] ) );
-        }
-        
-        if ( isset( $_POST['address'] ) ) {
-            update_post_meta( $post_id, '_address', sanitize_textarea_field( $_POST['address'] ) );
-        }
-    }
+	/**
+	 * Settings field callbacks - WhatsApp
+	 */
+	public function whatsapp_api_key_callback() {
+		$options = get_option('sandbaai_crime_whatsapp_options');
+		$api_key = isset($options['whatsapp_api_key']) ? $options['whatsapp_api_key'] : '';
+		?>
+		<input type="text" id="whatsapp_api_key" name="sandbaai_crime_whatsapp_options[whatsapp_api_key]" value="<?php echo esc_attr($api_key); ?>" class="regular-text" />
+		<p class="description">Enter your WhatsApp API key for sending notifications.</p>
+		<?php
+	}
 
-    /**
-     * Send notifications for new crime reports.
-     *
-     * @since    1.0.0
-     * @param    int    $post_id    The post ID.
-     */
-    private function send_notifications( $post_id ) {
-        $settings = get_option( 'sandbaai_crime_settings', array() );
-        
-        // Send email notification
-        if ( isset( $settings['email_notifications'] ) && $settings['email_notifications'] ) {
-            $this->send_email_notification( $post_id );
-        }
-        
-        // Send WhatsApp notification
-        if ( isset( $settings['whatsapp_enabled'] ) && $settings['whatsapp_enabled'] ) {
-            $this->send_whatsapp_notification( $post_id );
-        }
-    }
+	public function whatsapp_template_message_callback() {
+		$options = get_option('sandbaai_crime_whatsapp_options');
+		$template = isset($options['whatsapp_template_message']) ? $options['whatsapp_template_message'] : 'Crime Alert: {crime_type} reported at {location} at {time}. Details: {description}';
+		?>
+		<textarea id="whatsapp_template_message" name="sandbaai_crime_whatsapp_options[whatsapp_template_message]" rows="4" class="large-text"><?php echo esc_textarea($template); ?></textarea>
+		<p class="description">Customize the message template for WhatsApp notifications. Available placeholders: {crime_type}, {location}, {time}, {description}, {reporter_name}.</p>
+		<?php
+	}
 
-    /**
-     * Send email notification for crime report.
-     *
-     * @since    1.0.0
-     * @param    int    $post_id    The post ID.
-     */
-    private function send_email_notification( $post_id ) {
-        $settings = get_option( 'sandbaai_crime_settings', array() );
-        $email = isset( $settings['notification_email'] ) ? $settings['notification_email'] : get_option( 'admin_email' );
-        
-        $post = get_post( $post_id );
-        $crime_type = get_post_meta( $post_id, '_crime_type', true );
-        $crime_date = get_post_meta( $post_id, '_crime_date', true );
-        $crime_address = get_post_meta( $post_id, '_crime_address', true );
-        
-        $subject = sprintf( __( 'New Crime Report: %s', 'sandbaai-crime' ), $post->post_title );
-        
-        $message = sprintf(
-            __( "A new crime report has been submitted:\n\nTitle: %s\nType: %s\nDate: %s\nLocation: %s\n\nView full report: %s", 'sandbaai-crime' ),
-            $post->post_title,
-            $crime_type,
-            $crime_date,
-            $crime_address,
-            admin_url( 'post.php?post=' . $post_id . '&action=edit' )
-        );
-        
-        wp_mail( $email, $subject, $message );
-    }
+	/**
+	 * Settings field callbacks - Map
+	 */
+	public function map_center_lat_callback() {
+		$options = get_option('sandbaai_crime_map_options');
+		$lat = isset($options['map_center_lat']) ? $options['map_center_lat'] : '-34.4131';
+		?>
+		<input type="text" id="map_center_lat" name="sandbaai_crime_map_options[map_center_lat]" value="<?php echo esc_attr($lat); ?>" />
+		<p class="description">Default latitude for map center (e.g., -34.4131 for Sandbaai)</p>
+		<?php
+	}
 
-    /**
-     * Send WhatsApp notification for crime report.
-     *
-     * @since    1.0.0
-     * @param    int    $post_id    The post ID.
-     */
-    private function send_whatsapp_notification( $post_id ) {
-        // Use the WhatsApp notification class
-        require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/whatsapp-notifications.php';
-        
-        $whatsapp = new Sandbaai_Crime_WhatsApp_Notifications();
-        $whatsapp->send_crime_report_notification( $post_id );
-    }
+	public function map_center_lng_callback() {
+		$options = get_option('sandbaai_crime_map_options');
+		$lng = isset($options['map_center_lng']) ? $options['map_center_lng'] : '19.2262';
+		?>
+		<input type="text" id="map_center_lng" name="sandbaai_crime_map_options[map_center_lng]" value="<?php echo esc_attr($lng); ?>" />
+		<p class="description">Default longitude for map center (e.g., 19.2262 for Sandbaai)</p>
+		<?php
+	}
 
-    /**
-     * Get crime categories.
-     *
-     * @since    1.0.0
-     * @return   array    Crime categories.
-     */
-    private function get_crime_categories() {
-        // Get custom crime categories if available
-        $custom_categories = get_option( 'sandbaai_crime_categories', array() );
-        
-        if ( ! empty( $custom_categories ) ) {
-            return $custom_categories;
-        }
-        
-        // Return default categories
-        return array(
-            'burglary' => __( 'Burglary', 'sandbaai-crime' ),
-            'theft' => __( 'Theft', 'sandbaai-crime' ),
-            'robbery' => __( 'Robbery', 'sandbaai-crime' ),
-            'assault' => __( 'Assault', 'sandbaai-crime' ),
-            'vandalism' => __( 'Vandalism', 'sandbaai-crime' ),
-            'suspicious' => __( 'Suspicious Activity', 'sandbaai-crime' ),
-            'other' => __( 'Other', 'sandbaai-crime' ),
-        );
-    }
+	public function map_zoom_level_callback() {
+		$options = get_option('sandbaai_crime_map_options');
+		$zoom = isset($options['map_zoom_level']) ? $options['map_zoom_level'] : '14';
+		?>
+		<input type="number" id="map_zoom_level" name="sandbaai_crime_map_options[map_zoom_level]" value="<?php echo esc_attr($zoom); ?>" min="1" max="20" />
+		<p class="description">Default zoom level for the map (1-20, 14 recommended for neighborhood view)</p>
+		<?php
+	}
 
-    /**
-     * Get security groups.
-     *
-     * @since    1.0.0
-     * @return   array    Security groups.
-     */
-    private function get_security_groups() {
-        $security_groups = array();
-        
-        $args = array(
-            'post_type' => 'security_group',
-            'posts_per_page' => -1,
-            'post_status' => 'publish',
-        );
-        
-        $query = new WP_Query( $args );
-        
-        if ( $query->have_posts() ) {
-            while ( $query->have_posts() ) {
-                $query->the_post();
-                $security_groups[ get_the_ID() ] = get_the_title();
-            }
-            wp_reset_postdata();
-        }
-        
-        return $security_groups;
-    }
+	/**
+	 * Add meta boxes for the crime report post type
+	 *
+	 * @since    1.0.0
+	 */
+	public function add_meta_boxes() {
+		add_meta_box(
+			'crime_report_details',
+			'Crime Report Details',
+			array($this, 'render_crime_report_metabox'),
+			'crime_report',
+			'normal',
+			'high'
+		);
 
-    /**
-     * Get crime statistics.
-     *
-     * @since    1.0.0
-     * @param    array    $filters    Optional. Filters for statistics.
-     * @return   array    Crime statistics.
-     */
-    private function get_crime_statistics( $filters = array() ) {
-        $stats = array();
-        
-        // Parse filters
-        $defaults = array(
-            'start_date' => date( 'Y-m-d', strtotime( '-1 year' ) ),
-            'end_date' => date( 'Y-m-d' ),
-            'crime_type' => '',
-            'zone' => '',
-        );
-        
-        $filters = wp_parse_args( $filters, $defaults );
-        
-        // Build meta query based on filters
-        $meta_query = array( 'relation' => 'AND' );
-        
-        // Date filter
-        $meta_query[] = array(
-            'key' => '_crime_date',
-            'value' => array( $filters['start_date'], $filters['end_date'] ),
-            'compare' => 'BETWEEN',
-            'type' => 'DATE',
-        );
-        
-        // Crime type filter
-        if ( ! empty( $filters['crime_type'] ) ) {
-            $meta_query[] = array(
-                'key' => '_crime_type',
-                'value' => $filters['crime_type'],
-            );
-        }
-        
-        // Zone filter
-        if ( ! empty( $filters['zone'] ) ) {
-            $meta_query[] = array(
-                'key' => '_crime_zone',
-                'value' => $filters['zone'],
-            );
-        }
-        
-        // Get total crime reports
-        $args = array(
-            'post_type' => 'crime_report',
-            'posts_per_page' => -1,
-            'post_status' => 'publish',
-            'meta_query' => $meta_query,
-        );
-        
-        $query = new WP_Query( $args );
-        $stats['total'] = $query->found_posts;
-        
-        // Get crime reports by category
-        $categories = $this->get_crime_categories();
-        $stats['by_category'] = array();
-        
-        foreach ( $categories as $slug => $name ) {
-            $category_meta_query = $meta_query;
-            $category_meta_query[] = array(
-                'key' => '_crime_type',
-                'value' => $slug,
-            );
-            
-            $args = array(
-                'post_type' => 'crime_report',
-                'posts_per_page' => -1,
-                'post_status' => 'publish',
-                'meta_query' => $category_meta_query,
-            );
-            
-            $query = new WP_Query( $args );
-            $stats['by_category'][ $slug ] = array(
-                'name' => $name,
-                'count' => $query->found_posts,
-            );
-        }
-        
-        // Get crime reports by month
-        $stats['by_month'] = array();
-        
-        $start = new DateTime( $filters['start_date'] );
-        $end = new DateTime( $filters['end_date'] );
-        $interval = new DateInterval( 'P1M' );
-        $period = new DatePeriod( $start, $interval, $end );
-        
-        foreach ( $period as $date ) {
-            $month = $date->format( 'Y-m' );
-            $month_meta_query = $meta_query;
-            
-            // Override date filter for this specific month
-            foreach ( $month_meta_query as $key => $query_item ) {
-                if ( isset( $query_item['key'] ) && $query_item['key'] === '_crime_date' ) {
-                    $month_meta_query[$key] = array(
-                        'key' => '_crime_date',
-                        'value' => array( $month . '-01', $month . '-31' ),
-                        'compare' => 'BETWEEN',
-                        'type' => 'DATE',
-                    );
-                    break;
-                }
-            }
-            
-            $args = array(
-                'post_type' => 'crime_report',
-                'posts_per_page' => -1,
-                'post_status' => 'publish',
-                'meta_query' => $month_meta_query,
-            );
-            
-            $query = new WP_Query( $args );
-            $stats['by_month'][ $month ] = $query->found_posts;
-        }
-        
-        // Get crime reports by day of week
-        $stats['by_day'] = array(
-            'Sunday' => 0,
-            'Monday' => 0,
-            'Tuesday' => 0,
-            'Wednesday' => 0,
-            'Thursday' => 0,
-            'Friday' => 0,
-            'Saturday' => 0,
-        );
-        
-        $args = array(
-            'post_type' => 'crime_report',
-            'posts_per_page' => -1,
-            'post_status' => 'publish',
-            'meta_query' => $meta_query,
-        );
-        
-        $query = new WP_Query( $args );
-        
-        if ( $query->have_posts() ) {
-            while ( $query->have_posts() ) {
-                $query->the_post();
-                $id = get_the_ID();
-                $date_str = get_post_meta( $id, '_crime_date', true );
-                
-                if ( $date_str ) {
-                    $date = new DateTime( $date_str );
-                    $day_of_week = $date->format( 'l' );
-                    $stats['by_day'][ $day_of_week ]++;
-                }
-            }
-            wp_reset_postdata();
-        }
-        
-        // Get crime reports for map
-        $map_meta_query = $meta_query;
-        $map_meta_query[] = array(
-            'relation' => 'AND',
-            array(
-                'key' => '_crime_latitude',
-                'compare' => 'EXISTS',
-            ),
-            array(
-                'key' => '_crime_longitude',
-                'compare' => 'EXISTS',
-            ),
-        );
-        
-        $args = array(
-            'post_type' => 'crime_report',
-            'posts_per_page' => -1,
-            'post_status' => 'publish',
-            'meta_query' => $map_meta_query,
-        );
-        
-        $query = new WP_Query( $args );
-        $stats['map_data'] = array();
-        
-        if ( $query->have_posts() ) {
-            while ( $query->have_posts() ) {
-                $query->the_post();
-                $id = get_the_ID();
-                $lat = get_post_meta( $id, '_crime_latitude', true );
-                $lng = get_post_meta( $id, '_crime_longitude', true );
-                $type = get_post_meta( $id, '_crime_type', true );
-                $date = get_post_meta( $id, '_crime_date', true );
-                $time = get_post_meta( $id, '_crime_time', true );
-                $status = get_post_meta( $id, '_crime_status', true );
-                
-                if ( $lat && $lng ) {
-                    $stats['map_data'][] = array(
-                        'id' => $id,
-                        'title' => get_the_title(),
-                        'type' => $type,
-                        'date' => $date,
-                        'time' => $time,
-                        'status' => $status,
-                        'lat' => $lat,
-                        'lng' => $lng,
-                        'url' => get_permalink(),
-                    );
-                }
-            }
-            wp_reset_postdata();
-        }
-        
-        // Get crime zones with count
-        $stats['zones'] = array();
-        
-        $args = array(
-            'post_type' => 'crime_report',
-            'posts_per_page' => -1,
-            'post_status' => 'publish',
-            'meta_query' => $meta_query,
-            'meta_key' => '_crime_zone',
-            'orderby' => 'meta_value',
-            'order' => 'ASC',
-        );
-        
-        $query = new WP_Query( $args );
-        
-        if ( $query->have_posts() ) {
-            while ( $query->have_posts() ) {
-                $query->the_post();
-                $zone = get_post_meta( get_the_ID(), '_crime_zone', true );
-                
-                if ( $zone ) {
-                    if ( ! isset( $stats['zones'][ $zone ] ) ) {
-                        $stats['zones'][ $zone ] = 0;
-                    }
-                    
-                    $stats['zones'][ $zone ]++;
-                }
-            }
-            wp_reset_postdata();
-        }
-        
-        return $stats;
-    }
+		add_meta_box(
+			'crime_report_location',
+			'Crime Location',
+			array($this, 'render_crime_location_metabox'),
+			'crime_report',
+			'normal',
+			'high'
+		);
+	}
 
-    /**
-     * Register AJAX handlers.
-     *
-     * @since    1.0.0
-     */
-    public function register_ajax_handlers() {
-        add_action( 'wp_ajax_sandbaai_crime_submit_report', array( $this, 'ajax_submit_report' ) );
-        add_action( 'wp_ajax_nopriv_sandbaai_crime_submit_report', array( $this, 'ajax_submit_report' ) );
-        
-        add_action( 'wp_ajax_sandbaai_crime_get_statistics', array( $this, 'ajax_get_statistics' ) );
-        add_action( 'wp_ajax_nopriv_sandbaai_crime_get_statistics', array( $this, 'ajax_get_statistics' ) );
-        
-        add_action( 'wp_ajax_sandbaai_crime_export_data', array( $this, 'ajax_export_data' ) );
-        
-        add_action( 'wp_ajax_sandbaai_crime_manage_category', array( $this, 'ajax_manage_category' ) );
-        
-        add_action( 'wp_ajax_sandbaai_crime_get_zones', array( $this, 'ajax_get_zones' ) );
-        add_action( 'wp_ajax_nopriv_sandbaai_crime_get_zones', array( $this, 'ajax_get_zones' ) );
-    }
-    
-    /**
-     * AJAX handler for getting crime statistics.
-     *
-     * @since    1.0.0
-     */
-    public function ajax_get_statistics() {
-        // Check nonce
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'sandbaai_crime_stats_nonce' ) ) {
-            wp_send_json_error( array( 'message' => __( 'Security check failed', 'sandbaai-crime' ) ) );
-        }
-        
-        // Get filters
-        $filters = array();
-        
-        if ( isset( $_POST['start_date'] ) ) {
-            $filters['start_date'] = sanitize_text_field( $_POST['start_date'] );
-        }
-        
-        if ( isset( $_POST['end_date'] ) ) {
-            $filters['end_date'] = sanitize_text_field( $_POST['end_date'] );
-        }
-        
-        if ( isset( $_POST['crime_type'] ) ) {
-            $filters['crime_type'] = sanitize_text_field( $_POST['crime_type'] );
-        }
-        
-        if ( isset( $_POST['zone'] ) ) {
-            $filters['zone'] = sanitize_text_field( $_POST['zone'] );
-        }
-        
-        // Get statistics
-        $stats = $this->get_crime_statistics( $filters );
-        
-        // Return the statistics
-        wp_send_json_success( $stats );
-    }
-    
-    /**
-     * AJAX handler for exporting crime data.
-     *
-     * @since    1.0.0
-     */
-    public function ajax_export_data() {
-        // Check nonce
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'sandbaai_crime_export_nonce' ) ) {
-            wp_send_json_error( array( 'message' => __( 'Security check failed', 'sandbaai-crime' ) ) );
-        }
-        
-        // Check user capabilities
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => __( 'Permission denied', 'sandbaai-crime' ) ) );
-        }
-        
-        // Get export type
-        $export_type = isset( $_POST['export_type'] ) ? sanitize_text_field( $_POST['export_type'] ) : 'csv';
-        
-        // Get filters
-        $filters = array();
-        
-        if ( isset( $_POST['start_date'] ) ) {
-            $filters['start_date'] = sanitize_text_field( $_POST['start_date'] );
-        }
-        
-        if ( isset( $_POST['end_date'] ) ) {
-            $filters['end_date'] = sanitize_text_field( $_POST['end_date'] );
-        }
-        
-        if ( isset( $_POST['crime_type'] ) ) {
-            $filters['crime_type'] = sanitize_text_field( $_POST['crime_type'] );
-        }
-        
-        if ( isset( $_POST['zone'] ) ) {
-            $filters['zone'] = sanitize_text_field( $_POST['zone'] );
-        }
-        
-        // Build meta query based on filters
-        $meta_query = array( 'relation' => 'AND' );
-        
-        // Date filter
-        if ( isset( $filters['start_date'] ) && isset( $filters['end_date'] ) ) {
-            $meta_query[] = array(
-                'key' => '_crime_date',
-                'value' => array( $filters['start_date'], $filters['end_date'] ),
-                'compare' => 'BETWEEN',
-                'type' => 'DATE',
-            );
-        }
-        
-        // Crime type filter
-        if ( ! empty( $filters['crime_type'] ) ) {
-            $meta_query[] = array(
-                'key' => '_crime_type',
-                'value' => $filters['crime_type'],
-            );
-        }
-        
-        // Zone filter
-        if ( ! empty( $filters['zone'] ) ) {
-            $meta_query[] = array(
-                'key' => '_crime_zone',
-                'value' => $filters['zone'],
-            );
-        }
-        
-        // Get crime reports
-        $args = array(
-            'post_type' => 'crime_report',
-            'posts_per_page' => -1,
-            'post_status' => 'publish',
-            'meta_query' => $meta_query,
-        );
-        
-        $query = new WP_Query( $args );
-        
-        // Prepare data
-        $data = array();
-        
-        // Add header row
-        $data[] = array(
-            'ID',
-            __( 'Title', 'sandbaai-crime' ),
-            __( 'Type', 'sandbaai-crime' ),
-            __( 'Date', 'sandbaai-crime' ),
-            __( 'Time', 'sandbaai-crime' ),
-            __( 'Status', 'sandbaai-crime' ),
-            __( 'Address', 'sandbaai-crime' ),
-            __( 'Zone', 'sandbaai-crime' ),
-            __( 'Latitude', 'sandbaai-crime' ),
-            __( 'Longitude', 'sandbaai-crime' ),
-            __( 'Description', 'sandbaai-crime' ),
-            __( 'Security Groups', 'sandbaai-crime' ),
-            __( 'Author', 'sandbaai-crime' ),
-            __( 'Created', 'sandbaai-crime' ),
-        );
-        
-        if ( $query->have_posts() ) {
-            while ( $query->have_posts() ) {
-                $query->the_post();
-                $post_id = get_the_ID();
-                
-                // Get security groups
-                $security_group_ids = get_post_meta( $post_id, '_security_groups', true );
-                $security_groups = '';
-                
-                if ( is_array( $security_group_ids ) && ! empty( $security_group_ids ) ) {
-                    $security_group_names = array();
-                    
-                    foreach ( $security_group_ids as $group_id ) {
-                        $security_group_names[] = get_the_title( $group_id );
-                    }
-                    
-                    $security_groups = implode( ', ', $security_group_names );
-                }
-                
-                // Add data row
-                $data[] = array(
-                    $post_id,
-                    get_the_title(),
-                    get_post_meta( $post_id, '_crime_type', true ),
-                    get_post_meta( $post_id, '_crime_date', true ),
-                    get_post_meta( $post_id, '_crime_time', true ),
-                    get_post_meta( $post_id, '_crime_status', true ),
-                    get_post_meta( $post_id, '_crime_address', true ),
-                    get_post_meta( $post_id, '_crime_zone', true ),
-                    get_post_meta( $post_id, '_crime_latitude', true ),
-                    get_post_meta( $post_id, '_crime_longitude', true ),
-                    wp_strip_all_tags( get_the_content() ),
-                    $security_groups,
-                    get_the_author(),
-                    get_the_date(),
-                );
-            }
-            wp_reset_postdata();
-        }
-        
-        // Return data based on export type
-        if ( $export_type === 'csv' ) {
-            $csv_data = '';
-            
-            foreach ( $data as $row ) {
-                $csv_data .= '"' . implode( '","', $row ) . '"' . "\n";
-            }
-            
-            wp_send_json_success( array(
-                'data' => $csv_data,
-                'filename' => 'crime-reports-' . date( 'Y-m-d' ) . '.csv',
-            ) );
-        } else {
-            wp_send_json_success( array(
-                'data
+	/**
+	 * Render crime report meta box
+	 *
+	 * @since    1.0.0
+	 * @param    WP_Post    $post    The post object.
+	 */
+	public function render_crime_report_metabox($post) {
+		// Add nonce for security
+		wp_nonce_field('crime_report_meta_box', 'crime_report_meta_box_nonce');
+		
+		// Get saved values
+		$crime_type = get_post_meta($post->ID, '_crime_type', true);
+		$crime_date = get_post_meta($post->ID, '_crime_date', true);
+		$crime_time = get_post_meta($post->ID, '_crime_time', true);
+		$reporter_name = get_post_meta($post->ID, '_reporter_name', true);
+		$reporter_contact = get_post_meta($post->ID, '_reporter_contact', true);
 
-    /**
-     * AJAX handler for submitting crime reports.
-     *
-     * @since    1.0.0
-     */
-    public function ajax_submit_report() {
-        // Check nonce
-        if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'sandbaai_crime_report_nonce' ) ) {
-            wp_send_json_error( array( 'message' => __( 'Security check failed', 'sandbaai-crime' ) ) );
-        }
-        
-        // Check if user is logged in or anonymous reports are allowed
-        $settings = get_option( 'sandbaai_crime_settings', array() );
-        $allow_anonymous = isset( $settings['allow_anonymous'] ) && $settings['allow_anonymous'];
-        
-        if ( ! is_user_logged_in() && ! $allow_anonymous ) {
-            wp_send_json_error( array( 'message' => __( 'Login required to submit reports', 'sandbaai-crime' ) ) );
-        }
-        
-        // Validate required fields
-        $required_fields = array( 'title', 'crime_type', 'crime_date', 'crime_time', 'crime_address' );
-        foreach ( $required_fields as $field ) {
-            if ( ! isset( $_POST[$field] ) || empty( $_POST[$field] ) ) {
-                wp_send_json_error( array( 
-                    'message' => __( 'Please fill in all required fields', 'sandbaai-crime' ),
-                    'field' => $field
-                ) );
-            }
-        }
-        
-        // Create post data
-        $post_status = 'publish';
-        
-        // If require approval setting is enabled and user is not admin
-        if ( isset( $settings['require_approval'] ) && $settings['require_approval'] && ! current_user_can( 'manage_options' ) ) {
-            $post_status = 'pending';
-        }
-        
-        $post_data = array(
-            'post_title'    => sanitize_text_field( $_POST['title'] ),
-            'post_content'  => isset( $_POST['description'] ) ? wp_kses_post( $_POST['description'] ) : '',
-            'post_status'   => $post_status,
-            'post_type'     => 'crime_report',
-            'post_author'   => is_user_logged_in() ? get_current_user_id() : 1, // Use admin if anonymous
-        );
-        
-        // Insert the post
-        $post_id = wp_insert_post( $post_data );
-        
-        if ( is_wp_error( $post_id ) ) {
-            wp_send_json_error( array( 'message' => $post_id->get_error_message() ) );
-        }
-        
-        // Save meta data
-        update_post_meta( $post_id, '_crime_type', sanitize_text_field( $_POST['crime_type'] ) );
-        update_post_meta( $post_id, '_crime_date', sanitize_text_field( $_POST['crime_date'] ) );
-        update_post_meta( $post_id, '_crime_time', sanitize_text_field( $_POST['crime_time'] ) );
-        update_post_meta( $post_id, '_crime_address', sanitize_text_field( $_POST['crime_address'] ) );
-        
-        // Save optional fields
-        if ( isset( $_POST['crime_zone'] ) ) {
-            update_post_meta( $post_id, '_crime_zone', sanitize_text_field( $_POST['crime_zone'] ) );
-        }
-        
-        if ( isset( $_POST['crime_latitude'] ) && isset( $_POST['crime_longitude'] ) ) {
-            update_post_meta( $post_id, '_crime_latitude', floatval( $_POST['crime_latitude'] ) );
-            update_post_meta( $post_id, '_crime_longitude', floatval( $_POST['crime_longitude'] ) );
-        }
-        
-        if ( isset( $_POST['security_groups'] ) && is_array( $_POST['security_groups'] ) ) {
-            update_post_meta( $post_id, '_security_groups', array_map( 'absint', $_POST['security_groups'] ) );
-        }
-        
-        if ( isset( $_POST['crime_status'] ) ) {
-            update_post_meta( $post_id, '_crime_status', sanitize_text_field( $_POST['crime_status'] ) );
-        } else {
-            update_post_meta( $post_id, '_crime_status', 'reported' );
-        }
-        
-        // Handle image upload
-        if ( isset( $_FILES['crime_photo'] ) && ! empty( $_FILES['crime_photo']['name'] ) ) {
-            if ( ! function_exists( 'wp_handle_upload' ) ) {
-                require_once( ABSPATH . 'wp-admin/includes/file.php' );
-            }
-            
-            $upload_overrides = array( 'test_form' => false );
-            $uploaded_file = wp_handle_upload( $_FILES['crime_photo'], $upload_overrides );
-            
-            if ( ! isset( $uploaded_file['error'] ) && isset( $uploaded_file['file'] ) ) {
-                // Create attachment
-                $attachment = array(
-                    'post_mime_type' => $uploaded_file['type'],
-                    'post_title'     => sanitize_file_name( basename( $_FILES['crime_photo']['name'] ) ),
-                    'post_content'   => '',
-                    'post_status'    => 'inherit'
-                );
-                
-                $attach_id = wp_insert_attachment( $attachment, $uploaded_file['file'], $post_id );
-                
-                if ( ! is_wp_error( $attach_id ) ) {
-                    // Generate attachment metadata
-                    if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
-                        require_once( ABSPATH . 'wp-admin/includes/image.php' );
-                    }
-                    
-                    $attach_data = wp_generate_attachment_metadata( $attach_id, $uploaded_file['file'] );
-                    wp_update_attachment_metadata( $attach_id, $attach_data );
-                    
-                    // Set as featured image
-                    set_post_thumbnail( $post_id, $attach_id );
-                }
-            }
-        }
-        
-        // Send notifications if post is published
-        if ( $post_status === 'publish' ) {
-            $this->send_notifications( $post_id );
-            update_post_meta( $post_id, '_notified', 'yes' );
-        }
-        
-        // Return success
-        wp_send_json_success( array(
-            'message' => __( 'Crime report submitted successfully', 'sandbaai-crime' ),
-            'post_id' => $post_id,
-            'status'  => $post_status === 'publish' ? 'published' : 'pending',
-            'redirect_url' => get_permalink( $post_id )
-        ) );
-    }
+		// Crime types
+		$crime_types = array(
+			'break-in' => 'Break-in/Burglary',
+			'theft' => 'Theft',
+			'vehicle' => 'Vehicle Crime',
+			'vandalism' => 'Vandalism',
+			'suspicious' => 'Suspicious Activity',
+			'other' => 'Other'
+		);
+		?>
+		
+		<div class="crime-report-field">
+			<label for="crime_type"><strong>Crime Type:</strong></label>
+			<select id="crime_type" name="crime_type">
+				<option value="">Select crime type</option>
+				<?php foreach ($crime_types as $value => $label) : ?>
+					<option value="<?php echo esc_attr($value); ?>" <?php selected($crime_type, $value); ?>><?php echo esc_html($label); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</div>
+
+		<div class="crime-report-field">
+			<label for="crime_date"><strong>Date of Incident:</strong></label>
+			<input type="date" id="crime_date" name="crime_date" value="<?php echo esc_attr($crime_date); ?>" />
+		</div>
+
+		<div class="crime-report-field">
+			<label for="crime_time"><strong>Time of Incident:</strong></label>
+			<input type="time" id="crime_time" name="crime_time" value="<?php echo esc_attr($crime_time); ?>" />
+		</div>
+
+		<div class="crime-report-field">
+			<label for="reporter_name"><strong>Reporter Name:</strong></label>
+			<input type="text" id="reporter_name" name="reporter_name" value="<?php echo esc_attr($reporter_name); ?>" />
+		</div>
+
+		<div class="crime-report-field">
+			<label for="reporter_contact"><strong>Reporter Contact:</strong></label>
+			<input type="text" id="reporter_contact" name="reporter_contact" value="<?php echo esc_attr($reporter_contact); ?>" />
+		</div>
+		<?php
+	}
+
+	/**
+	 * Render crime location meta box
+	 *
+	 * @since    1.0.0
+	 * @param    WP_Post    $post    The post object.
+	 */
+	public function render_crime_location_metabox($post) {
+		// Get saved values
+		$latitude = get_post_meta($post->ID, '_crime_latitude', true);
+		$longitude = get_post_meta($post->ID, '_crime_longitude', true);
+		$address = get_post_meta($post->ID, '_crime_address', true);
+		
+		// Get map default settings
+		$map_options = get_option('sandbaai_crime_map_options');
+		$default_lat = isset($map_options['map_center_lat']) ? $map_options['map_center_lat'] : '-34.4131';
+		$default_lng = isset($map_options['map_center_lng']) ? $map_options['map_center_lng'] : '19.2262';
+		
+		// Use saved values or defaults
+		$lat = !empty($latitude) ? $latitude : $default_lat;
+		$lng = !empty($longitude) ? $longitude : $default_lng;
+		?>
+		
+		<div class="crime-report-field">
+			<label for="crime_address"><strong>Address:</strong></label>
+			<input type="text" id="crime_address" name="crime_address" value="<?php echo esc_attr($address); ?>" class="large-text" />
+		</div>
+
+		<div class="crime-report-field">
+			<div class="coordinate-inputs">
+				<label for="crime_latitude"><strong>Latitude:</strong></label>
+				<input type="text" id="crime_latitude" name="crime_latitude" value="<?php echo esc_attr($lat); ?>" />
+				
+				<label for="crime_longitude"><strong>Longitude:</strong></label>
+				<input type="text" id="crime_longitude" name="crime_longitude" value="<?php echo esc_attr($lng); ?>" />
+			</div>
+		</div>
+
+		<div id="crime-location-map" style="height: 300px; margin-top: 10px; border: 1px solid #ddd;"></div>
+		<p class="description">Click on the map to set the exact location of the incident.</p>
+
+		<script>
+		jQuery(document).ready(function($) {
+			// Initialize the map
+			var map = L.map('crime-location-map').setView([<?php echo esc_js($lat); ?>, <?php echo esc_js($lng); ?>], 14);
+			
+			L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+			}).addTo(map);
+			
+			// Add marker
+			var marker = L.marker([<?php echo esc_js($lat); ?>, <?php echo esc_js($lng); ?>], {
+				draggable: true
+			}).addTo(map);
+			
+			// Update coordinates when marker is dragged
+			marker.on('dragend', function(e) {
+				var position = marker.getLatLng();
+				$('#crime_latitude').val(position.lat);
+				$('#crime_longitude').val(position.lng);
+				
+				// Try to get address from coordinates
+				reverseGeocode(position.lat, position.lng);
+			});
+			
+			// Add click event on map
+			map.on('click', function(e) {
+				marker.setLatLng(e.latlng);
+				$('#crime_latitude').val(e.latlng.lat);
+				$('#crime_longitude').val(e.latlng.lng);
+				
+				// Try to get address from coordinates
+				reverseGeocode(e.latlng.lat, e.latlng.lng);
+			});
+			
+			// Function to get address from coordinates
+			function reverseGeocode(lat, lng) {
+				$.get('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + lat + '&lon=' + lng, function(data) {
+					if (data && data.display_name) {
+						$('#crime_address').val(data.display_name);
+					}
+				});
+			}
+		});
+		</script>
+		<?php
+	}
+
+	/**
+	 * Save crime report meta data
+	 *
+	 * @since    1.0.0
+	 * @param    int    $post_id    The post ID.
+	 */
+	public function save_meta_data($post_id) {
+		// Check if our nonce is set
+		if (!isset($_POST['crime_report_meta_box_nonce'])) {
+			return;
+		}
+		
+		// Verify the nonce
+		if (!wp_verify_nonce($_POST['crime_report_meta_box_nonce'], 'crime_report_meta_box')) {
+			return;
+		}
+		
+		// If this is an autosave, don't do anything
+		if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+			return;
+		}
+		
+		// Check user permissions
+		if (!current_user_can('edit_post', $post_id)) {
+			return;
+		}
+		
+		// Save crime report fields
+		if (isset($_POST['crime_type'])) {
+			update_post_meta($post_id, '_crime_type', sanitize_text_field($_POST['crime_type']));
+		}
+		
+		if (isset($_POST['crime_date'])) {
+			update_post_meta($post_id, '_crime_date', sanitize_text_field($_POST['crime_date']));
+		}
+		
+		if (isset($_POST['crime_time'])) {
+			update_post_meta($post_id, '_crime_time', sanitize_text_field($_POST['crime_time']));
+		}
+		
+		if (isset($_POST['reporter_name'])) {
+			update_post_meta($post_id, '_reporter_name', sanitize_text_field($_POST['reporter_name']));
+		}
+		
+		if (isset($_POST['reporter_contact'])) {
+			update_post_meta($post_id, '_reporter_contact', sanitize_text_field($_POST['reporter_contact']));
+		}
+		
+		// Save location fields
+		if (isset($_POST['crime_address'])) {
+			update_post_meta($post_id, '_crime_address', sanitize_text_field($_POST['crime_address']));
+		}
+		
+		if (isset($_POST['crime_latitude'])) {
+			update_post_meta($post_id, '_crime_latitude', sanitize_text_field($_POST['crime_latitude']));
+		}
+		
+		if (isset($_POST['crime_longitude'])) {
+			update_post_meta($post_id, '_crime_longitude', sanitize_text_field($_POST['crime_longitude']));
+		}
+	}
+
+	/**
+	 * Add custom columns to crime report list view
+	 *
+	 * @since    1.0.0
+	 * @param    array    $columns    The default columns.
+	 * @return   array    $columns    The modified columns.
+	 */
+	public function set_custom_columns($columns) {
+		$new_columns = array();
+		
+		// Add ID column after checkbox
+		$new_columns['cb'] = $columns['cb'];
+		$new_columns['id'] = 'ID';
+		
+		// Add other custom columns
+		$new_columns['title'] = $columns['title'];
+		$new_columns['crime_type'] = 'Crime Type';
+		$new_columns['crime_date'] = 'Date/Time';
+		$new_columns['location'] = 'Location';
+		$new_columns['reporter'] = 'Reporter';
+		$new_columns['date'] = $columns['date'];
+		
+		return $new_columns;
+	}
+
+	/**
+	 * Display custom column content
+	 *
+	 * @since    1.0.0
+	 * @param    string    $column    The column name.
+	 * @param    int       $post_id   The post ID.
+	 */
+	public function display_custom_columns($column, $post_id) {
+		switch ($column) {
+			case 'id':
+				echo $post_id;
+				break;
+				
+			case 'crime_type':
+				$crime_type = get_post_meta($post_id, '_crime_type', true);
+				$crime_types = array(
+					'break-in' => 'Break-in/Burglary',
+					'theft' => 'Theft',
+					'vehicle' => 'Vehicle Crime',
+					'vandalism' => 'Vandalism',
+					'suspicious' => 'Suspicious Activity',
+					'other' => 'Other'
+				);
+				echo isset($crime_types[$crime_type]) ? esc_html($crime_types[$crime_type]) : esc_html($crime_type);
+				break;
+				
+			case 'crime_date':
+				$date = get_post_meta($post_id, '_crime_date', true);
+				$time = get_post_meta($post_id, '_crime_time', true);
+				echo esc_html($date) . '<br>' . esc_html($time);
+				break;
+				
+			case 'location':
+				$address = get_post_meta($post_id, '_crime_address', true);
+				echo esc_html($address);
+				break;
+				
+			case 'reporter':
+				$name = get_post_meta($post_id, '_reporter_name', true);
+				$contact = get_post_meta($post_id, '_reporter_contact', true);
+				echo esc_html($name) . '<br>' . esc_html($contact);
+				break;
+		}
+	}
+
+	/**
+	 * Export crime reports as CSV
+	 *
+	 * @since    1.0.0
+	 */
+	public function export_crime_reports() {
+		// Check if export is requested
+		if (isset($_POST['export_crime_reports']) && current_user_can('manage_options')) {
+			// Set headers for download
+			header('Content-Type: text/csv; charset=utf-8');
+			header('Content-Disposition: attachment; filename=crime-reports-' . date('Y-m-d') . '.csv');
+			
+			// Create output stream
+			$output = fopen('php://output', 'w');
+			
+			// Add CSV headers
+			fputcsv($output, array(
+				'ID',
+				'Title',
+				'Crime Type',
+				'Date',
+				'Time',
+				'Address',
+				'Latitude',
+				'Longitude',
+				'Reporter Name',
+				'Reporter Contact',
+				'Description',
+				'Status',
+				'Date Submitted'
+			));
+			
+			// Get all crime reports
+			$args = array(
+				'post_type' => 'crime_report',
+				'posts_per_page' => -1,
+				'post_status' => 'any'
+			);
+			
+			$reports = get_posts($args);
+			
+			// Output each report as CSV row
+			foreach ($reports as $report) {
+				$crime_type = get_post_meta($report->ID, '_crime_type', true);
+				$crime_date = get_post_meta($report->ID, '_crime_date', true);
+				$crime_time = get_post_meta($report->ID, '_crime_time', true);
+				$address = get_post_meta($report->ID, '_crime_address', true);
+				$latitude = get_post_meta($report->ID, '_crime_latitude', true);
+				$longitude = get_post_meta($report->ID, '_crime_longitude', true);
+				$reporter_name = get_post_meta($report->ID, '_reporter_name', true);
+				$reporter_contact = get_post_meta($report->ID, '_reporter_contact', true);
+				
+				fputcsv($output, array(
+					$report->ID,
+					$report->post_title,
+					$crime_type,
+					$crime_date,
+					$crime_time,
+					$address,
+					$latitude,
+					$longitude,
+					$reporter_name,
+					$reporter_contact,
+					$report->post_content,
+					$report->post_status,
+					$report->post_date
+				));
+			}
+			
+			fclose($output);
+			exit;
+		}
+	}
+}
