@@ -1,0 +1,584 @@
+<?php
+/**
+ * Crime statistics display functionality.
+ *
+ * @since      1.0.0
+ * @package    Sandbaai_Crime
+ * @subpackage Sandbaai_Crime/public
+ */
+class Sandbaai_Crime_Statistics {
+
+    /**
+     * Initialize the class and set its properties.
+     *
+     * @since    1.0.0
+     */
+    public function __construct() {
+        add_shortcode('sandbaai_crime_statistics', array($this, 'render_statistics'));
+        add_action('wp_ajax_get_filtered_crime_data', array($this, 'ajax_get_filtered_crime_data'));
+        add_action('wp_ajax_nopriv_get_filtered_crime_data', array($this, 'ajax_get_filtered_crime_data'));
+    }
+
+    /**
+     * Render the crime statistics dashboard.
+     *
+     * @return string Dashboard HTML
+     */
+    public function render_statistics() {
+        // Enqueue necessary scripts and styles
+        wp_enqueue_script('sandbaai-crime-statistics');
+        wp_enqueue_script('sandbaai-crime-charts');
+        wp_enqueue_script('sandbaai-crime-maps');
+        wp_enqueue_style('sandbaai-crime-statistics');
+        
+        // Get initial data
+        $categories = $this->get_crime_categories();
+        $years = $this->get_available_years();
+        $months = $this->get_months();
+        $results = $this->get_result_options();
+        
+        // Start output buffering
+        ob_start();
+        ?>
+        <div class="sandbaai-crime-statistics-container">
+            <h2><?php _e('Crime Statistics for Sandbaai', 'sandbaai-crime'); ?></h2>
+            
+            <div class="crime-filters">
+                <form id="crime-filter-form">
+                    <div class="filter-row">
+                        <div class="filter-group">
+                            <label for="filter-year"><?php _e('Year', 'sandbaai-crime'); ?></label>
+                            <select id="filter-year" name="year">
+                                <option value="all"><?php _e('All Years', 'sandbaai-crime'); ?></option>
+                                <?php foreach ($years as $year) : ?>
+                                    <option value="<?php echo esc_attr($year); ?>"><?php echo esc_html($year); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="filter-month"><?php _e('Month', 'sandbaai-crime'); ?></label>
+                            <select id="filter-month" name="month">
+                                <option value="all"><?php _e('All Months', 'sandbaai-crime'); ?></option>
+                                <?php foreach ($months as $key => $month) : ?>
+                                    <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($month); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="filter-category"><?php _e('Crime Type', 'sandbaai-crime'); ?></label>
+                            <select id="filter-category" name="category">
+                                <option value="all"><?php _e('All Types', 'sandbaai-crime'); ?></option>
+                                <?php foreach ($categories as $category) : ?>
+                                    <option value="<?php echo esc_attr($category->id); ?>"><?php echo esc_html($category->name); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="filter-result"><?php _e('Result', 'sandbaai-crime'); ?></label>
+                            <select id="filter-result" name="result">
+                                <option value="all"><?php _e('All Results', 'sandbaai-crime'); ?></option>
+                                <?php foreach ($results as $key => $result) : ?>
+                                    <option value="<?php echo esc_attr($key); ?>"><?php echo esc_html($result); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-row">
+                        <div class="filter-group time-range">
+                            <label><?php _e('Time Range', 'sandbaai-crime'); ?></label>
+                            <div class="time-range-inputs">
+                                <select id="filter-time-from" name="time_from">
+                                    <?php for ($i = 0; $i < 24; $i++) : ?>
+                                        <option value="<?php echo sprintf('%02d:00', $i); ?>">
+                                            <?php echo sprintf('%02d:00', $i); ?>
+                                        </option>
+                                    <?php endfor; ?>
+                                </select>
+                                <span class="time-range-separator"><?php _e('to', 'sandbaai-crime'); ?></span>
+                                <select id="filter-time-to" name="time_to">
+                                    <?php for ($i = 0; $i < 24; $i++) : ?>
+                                        <option value="<?php echo sprintf('%02d:00', $i); ?>"
+                                            <?php echo ($i === 23) ? 'selected' : ''; ?>>
+                                            <?php echo sprintf('%02d:00', $i); ?>
+                                        </option>
+                                    <?php endfor; ?>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-actions">
+                            <button type="submit" class="button filter-submit"><?php _e('Apply Filters', 'sandbaai-crime'); ?></button>
+                            <button type="button" class="button filter-reset"><?php _e('Reset Filters', 'sandbaai-crime'); ?></button>
+                        </div>
+                    </div>
+                    
+                    <?php wp_nonce_field('sandbaai_crime_filter_nonce', 'crime_filter_nonce'); ?>
+                </form>
+            </div>
+            
+            <div class="crime-statistics-loading">
+                <div class="loading-spinner"></div>
+                <p><?php _e('Loading crime statistics...', 'sandbaai-crime'); ?></p>
+            </div>
+            
+            <div class="crime-statistics-content" style="display: none;">
+                <div class="statistics-row">
+                    <div class="statistics-card crime-count">
+                        <h3><?php _e('Total Incidents', 'sandbaai-crime'); ?></h3>
+                        <div class="stat-number" id="total-crimes">0</div>
+                    </div>
+                    
+                    <div class="statistics-card solved-count">
+                        <h3><?php _e('Solved/Prevented', 'sandbaai-crime'); ?></h3>
+                        <div class="stat-number" id="solved-crimes">0</div>
+                    </div>
+                    
+                    <div class="statistics-card unsolved-count">
+                        <h3><?php _e('Unsolved', 'sandbaai-crime'); ?></h3>
+                        <div class="stat-number" id="unsolved-crimes">0</div>
+                    </div>
+                </div>
+                
+                <div class="statistics-row charts-row">
+                    <div class="statistics-panel chart-panel">
+                        <h3><?php _e('Crimes by Day', 'sandbaai-crime'); ?></h3>
+                        <div class="chart-container">
+                            <canvas id="crimes-by-day-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="statistics-panel chart-panel">
+                        <h3><?php _e('Crime Categories', 'sandbaai-crime'); ?></h3>
+                        <div class="chart-container">
+                            <canvas id="crime-categories-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="statistics-panel full-width">
+                    <h3><?php _e('Crime Map', 'sandbaai-crime'); ?></h3>
+                    <div class="map-view-options">
+                        <label>
+                            <input type="radio" name="map_view" value="markers" checked>
+                            <?php _e('Show Markers', 'sandbaai-crime'); ?>
+                        </label>
+                        <label>
+                            <input type="radio" name="map_view" value="heatmap">
+                            <?php _e('Show Heatmap', 'sandbaai-crime'); ?>
+                        </label>
+                        <label>
+                            <input type="radio" name="map_view" value="zones">
+                            <?php _e('Show Zone Statistics', 'sandbaai-crime'); ?>
+                        </label>
+                    </div>
+                    <div id="crime-map" class="crime-map"></div>
+                </div>
+                
+                <div class="statistics-panel full-width">
+                    <h3><?php _e('Crime Reports', 'sandbaai-crime'); ?></h3>
+                    <div class="crime-reports-list">
+                        <table id="crime-reports-table" class="crime-reports-table">
+                            <thead>
+                                <tr>
+                                    <th><?php _e('Date', 'sandbaai-crime'); ?></th>
+                                    <th><?php _e('Time', 'sandbaai-crime'); ?></th>
+                                    <th><?php _e('Title', 'sandbaai-crime'); ?></th>
+                                    <th><?php _e('Category', 'sandbaai-crime'); ?></th>
+                                    <th><?php _e('Location', 'sandbaai-crime'); ?></th>
+                                    <th><?php _e('Result', 'sandbaai-crime'); ?></th>
+                                    <th><?php _e('Actions', 'sandbaai-crime'); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody id="crime-reports-body">
+                                <!-- Will be populated via JavaScript -->
+                            </tbody>
+                        </table>
+                        <div id="crime-reports-pagination" class="crime-reports-pagination">
+                            <!-- Will be populated via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * AJAX handler for getting filtered crime data.
+     */
+    public function ajax_get_filtered_crime_data() {
+        // Verify nonce
+        if (!isset($_POST['crime_filter_nonce']) || !wp_verify_nonce($_POST['crime_filter_nonce'], 'sandbaai_crime_filter_nonce')) {
+            wp_send_json_error(array('message' => __('Security verification failed.', 'sandbaai-crime')));
+        }
+
+        // Get filter values
+        $year = isset($_POST['year']) ? sanitize_text_field($_POST['year']) : 'all';
+        $month = isset($_POST['month']) ? sanitize_text_field($_POST['month']) : 'all';
+        $category = isset($_POST['category']) ? sanitize_text_field($_POST['category']) : 'all';
+        $result = isset($_POST['result']) ? sanitize_text_field($_POST['result']) : 'all';
+        $time_from = isset($_POST['time_from']) ? sanitize_text_field($_POST['time_from']) : '00:00';
+        $time_to = isset($_POST['time_to']) ? sanitize_text_field($_POST['time_to']) : '23:00';
+        $page = isset($_POST['page']) ? intval($_POST['page']) : 1;
+        $per_page = 10;
+
+        // Get filtered data
+        $data = $this->get_filtered_crime_data($year, $month, $category, $result, $time_from, $time_to, $page, $per_page);
+        
+        wp_send_json_success($data);
+    }
+
+    /**
+     * Get filtered crime data.
+     *
+     * @param string $year Year filter
+     * @param string $month Month filter
+     * @param string $category Category filter
+     * @param string $result Result filter
+     * @param string $time_from Time from filter
+     * @param string $time_to Time to filter
+     * @param int $page Current page
+     * @param int $per_page Items per page
+     * @return array Filtered data
+     */
+    private function get_filtered_crime_data($year, $month, $category, $result, $time_from, $time_to, $page, $per_page) {
+        global $wpdb;
+        
+        // Base query
+        $query = "FROM {$wpdb->prefix}sandbaai_crime_reports r 
+                  LEFT JOIN {$wpdb->prefix}sandbaai_crime_categories c ON r.crime_category_id = c.id 
+                  LEFT JOIN {$wpdb->prefix}sandbaai_zones z ON r.zone_id = z.id 
+                  WHERE r.status = 'published'";
+                  
+        $count_query = "SELECT COUNT(*) " . $query;
+        $data_query = "SELECT r.*, c.name as category_name, c.color as category_color, z.name as zone_name " . $query;
+        
+        // Apply filters
+        $where = array();
+        $parameters = array();
+        
+        if ($year !== 'all') {
+            $where[] = "YEAR(r.crime_date) = %d";
+            $parameters[] = $year;
+        }
+        
+        if ($month !== 'all') {
+            $where[] = "MONTH(r.crime_date) = %d";
+            $parameters[] = $month;
+        }
+        
+        if ($category !== 'all') {
+            $where[] = "r.crime_category_id = %d";
+            $parameters[] = $category;
+        }
+        
+        if ($result !== 'all') {
+            $where[] = "r.result = %s";
+            $parameters[] = $result;
+        }
+        
+        // Time range filter
+        $where[] = "r.crime_time >= %s";
+        $parameters[] = $time_from;
+        
+        $where[] = "r.crime_time <= %s";
+        $parameters[] = $time_to;
+        
+        // Add where clauses to query
+        if (!empty($where)) {
+            $query .= " AND " . implode(" AND ", $where);
+        }
+        
+        // Prepare queries
+        $count_query = $wpdb->prepare($count_query . " AND " . implode(" AND ", $where), $parameters);
+        $data_query = $wpdb->prepare($data_query . " AND " . implode(" AND ", $where), $parameters);
+        
+        // Get total items
+        $total_items = $wpdb->get_var($count_query);
+        $total_pages = ceil($total_items / $per_page);
+        
+        // Get paginated data
+        $offset = ($page - 1) * $per_page;
+        $data_query .= " ORDER BY r.crime_date DESC, r.crime_time DESC LIMIT $offset, $per_page";
+        $items = $wpdb->get_results($data_query);
+        
+        // Get summary data
+        $summary = $this->get_crime_summary($year, $month, $category, $result, $time_from, $time_to);
+        
+        // Get chart data
+        $daily_chart = $this->get_daily_chart_data($year, $month, $category, $result, $time_from, $time_to);
+        $category_chart = $this->get_category_chart_data($year, $month, $category, $result, $time_from, $time_to);
+        
+        // Get map data
+        $map_data = $this->get_map_data($year, $month, $category, $result, $time_from, $time_to);
+        
+        return array(
+            'items' => $items,
+            'pagination' => array(
+                'total_items' => $total_items,
+                'total_pages' => $total_pages,
+                'current_page' => $page,
+                'per_page' => $per_page
+            ),
+            'summary' => $summary,
+            'charts' => array(
+                'daily' => $daily_chart,
+                'categories' => $category_chart
+            ),
+            'map' => $map_data
+        );
+    }
+
+    /**
+     * Get crime summary data.
+     */
+    private function get_crime_summary($year, $month, $category, $result, $time_from, $time_to) {
+        global $wpdb;
+        
+        // Base query
+        $query = "FROM {$wpdb->prefix}sandbaai_crime_reports r WHERE r.status = 'published'";
+                  
+        // Apply filters
+        $where = array();
+        $parameters = array();
+        
+        if ($year !== 'all') {
+            $where[] = "YEAR(r.crime_date) = %d";
+            $parameters[] = $year;
+        }
+        
+        if ($month !== 'all') {
+            $where[] = "MONTH(r.crime_date) = %d";
+            $parameters[] = $month;
+        }
+        
+        if ($category !== 'all') {
+            $where[] = "r.crime_category_id = %d";
+            $parameters[] = $category;
+        }
+        
+        if ($result !== 'all') {
+            $where[] = "r.result = %s";
+            $parameters[] = $result;
+        }
+        
+        // Time range filter
+        $where[] = "r.crime_time >= %s";
+        $parameters[] = $time_from;
+        
+        $where[] = "r.crime_time <= %s";
+        $parameters[] = $time_to;
+        
+        // Add where clauses to query
+        if (!empty($where)) {
+            $query .= " AND " . implode(" AND ", $where);
+        }
+        
+        // Get total crimes
+        $total_query = "SELECT COUNT(*) " . $query;
+        $total = $wpdb->get_var($wpdb->prepare($total_query, $parameters));
+        
+        // Get solved/prevented crimes
+        $solved_query = "SELECT COUNT(*) " . $query . " AND r.result IN ('solved', 'prevented')";
+        $solved = $wpdb->get_var($wpdb->prepare($solved_query, $parameters));
+        
+        // Get unsolved crimes
+        $unsolved_query = "SELECT COUNT(*) " . $query . " AND r.result = 'unsolved'";
+        $unsolved = $wpdb->get_var($wpdb->prepare($unsolved_query, $parameters));
+        
+        return array(
+            'total' => $total,
+            'solved' => $solved,
+            'unsolved' => $unsolved
+        );
+    }
+
+    /**
+     * Get daily chart data.
+     */
+    private function get_daily_chart_data($year, $month, $category, $result, $time_from, $time_to) {
+        global $wpdb;
+        
+        // Determine date range
+        if ($year !== 'all' && $month !== 'all') {
+            // Get days in month
+            $days_in_month = cal_days_in_month(CAL_GREGORIAN, $month, $year);
+            $start_date = "$year-$month-01";
+            $end_date = "$year-$month-$days_in_month";
+        } elseif ($year !== 'all') {
+            $start_date = "$year-01-01";
+            $end_date = "$year-12-31";
+        } else {
+            // Default to last 30 days
+            $end_date = date('Y-m-d');
+            $start_date = date('Y-m-d', strtotime('-30 days'));
+        }
+        
+        // Base query
+        $query = "SELECT r.crime_date, COUNT(*) as count
+                 FROM {$wpdb->prefix}sandbaai_crime_reports r
+                 WHERE r.status = 'published' 
+                 AND r.crime_date BETWEEN %s AND %s";
+                  
+        // Apply filters
+        $where = array();
+        $parameters = array($start_date, $end_date);
+        
+        if ($category !== 'all') {
+            $where[] = "r.crime_category_id = %d";
+            $parameters[] = $category;
+        }
+        
+        if ($result !== 'all') {
+            $where[] = "r.result = %s";
+            $parameters[] = $result;
+        }
+        
+        // Time range filter
+        $where[] = "r.crime_time >= %s";
+        $parameters[] = $time_from;
+        
+        $where[] = "r.crime_time <= %s";
+        $parameters[] = $time_to;
+        
+        // Add where clauses to query
+        if (!empty($where)) {
+            $query .= " AND " . implode(" AND ", $where);
+        }
+        
+        $query .= " GROUP BY r.crime_date ORDER BY r.crime_date";
+        
+        // Get data
+        $results = $wpdb->get_results($wpdb->prepare($query, $parameters));
+        
+        // Format for chart.js
+        $dates = array();
+        $counts = array();
+        
+        // Create date range array
+        $current_date = new DateTime($start_date);
+        $end_date_obj = new DateTime($end_date);
+        $date_data = array();
+        
+        while ($current_date <= $end_date_obj) {
+            $date_key = $current_date->format('Y-m-d');
+            $date_data[$date_key] = 0;
+            $current_date->modify('+1 day');
+        }
+        
+        // Fill in actual data
+        foreach ($results as $row) {
+            $date_data[$row->crime_date] = (int)$row->count;
+        }
+        
+        foreach ($date_data as $date => $count) {
+            $dates[] = date('M j', strtotime($date));
+            $counts[] = $count;
+        }
+        
+        return array(
+            'labels' => $dates,
+            'datasets' => array(
+                array(
+                    'label' => __('Number of Crimes', 'sandbaai-crime'),
+                    'data' => $counts,
+                    'backgroundColor' => 'rgba(54, 162, 235, 0.5)',
+                    'borderColor' => 'rgba(54, 162, 235, 1)',
+                    'borderWidth' => 1
+                )
+            )
+        );
+    }
+
+    /**
+     * Get category chart data.
+     */
+    private function get_category_chart_data($year, $month, $category, $result, $time_from, $time_to) {
+        global $wpdb;
+        
+        // Base query
+        $query = "SELECT c.name, c.color, COUNT(*) as count
+                 FROM {$wpdb->prefix}sandbaai_crime_reports r
+                 JOIN {$wpdb->prefix}sandbaai_crime_categories c ON r.crime_category_id = c.id
+                 WHERE r.status = 'published'";
+                  
+        // Apply filters
+        $where = array();
+        $parameters = array();
+        
+        if ($year !== 'all') {
+            $where[] = "YEAR(r.crime_date) = %d";
+            $parameters[] = $year;
+        }
+        
+        if ($month !== 'all') {
+            $where[] = "MONTH(r.crime_date) = %d";
+            $parameters[] = $month;
+        }
+        
+        if ($category !== 'all') {
+            $where[] = "r.crime_category_id = %d";
+            $parameters[] = $category;
+        }
+        
+        if ($result !== 'all') {
+            $where[] = "r.result = %s";
+            $parameters[] = $result;
+        }
+        
+        // Time range filter
+        $where[] = "r.crime_time >= %s";
+        $parameters[] = $time_from;
+        
+        $where[] = "r.crime_time <= %s";
+        $parameters[] = $time_to;
+        
+        // Add where clauses to query
+        if (!empty($where)) {
+            $query .= " AND " . implode(" AND ", $where);
+        }
+        
+        $query .= " GROUP BY r.crime_category_id ORDER BY count DESC";
+        
+        // Get data
+        $results = $wpdb->get_results($wpdb->prepare($query, $parameters));
+        
+        // Format for chart.js
+        $labels = array();
+        $data = array();
+        $colors = array();
+        
+        foreach ($results as $row) {
+            $labels[] = $row->name;
+            $data[] = (int)$row->count;
+            $colors[] = $row->color;
+        }
+        
+        return array(
+            'labels' => $labels,
+            'datasets' => array(
+                array(
+                    'data' => $data,
+                    'backgroundColor' => $colors
+                )
+            )
+        );
+    }
+
+    /**
+     * Get map data.
+     */
+    private function get_map_data($year, $month, $category, $result, $time_from, $time_to) {
+        global $wpdb;
+        
+        // Base query for markers
+        $markers_query = "SELECT r.id, r.title, r.address, r.zone_id, r.crime_date, r.crime_time, 
+                         r.result, c.name as category, c.color,
+                         (CASE WHEN r.address IS NOT NULL THEN r.address ELSE z.name END) as location
+                         FROM {$wpdb->prefix}sandbaai_crime_reports r
+                         LEFT JOIN {$wpdb->prefix}sandbaai_crime_categories c ON r.crime_category_id = c.id
