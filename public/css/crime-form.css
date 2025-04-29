@@ -1,0 +1,394 @@
+/**
+ * Sandbaai Crime Form Styles
+ * 
+ * Mobile-optimized styles for the crime reporting form with progressive disclosure
+ */
+
+/* Container */
+.sandbaai-crime-report-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px 15px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+.sandbaai-crime-report-container h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #2c3e50;
+}
+
+/* Progress Steps */
+.form-progress-indicator {
+    margin-bottom: 30px;
+}
+
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.progress-steps .step {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    position: relative;
+    padding-bottom: 15px;
+    color: #7f8c8d;
+}
+
+.progress-steps .step::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: #ecf0f1;
+    z-index: 1;
+}
+
+.progress-steps .step:first-child::after {
+    left: 50%;
+}
+
+.progress-steps .step:last-child::after {
+    right: 50%;
+}
+
+.progress-steps .step.active {
+    color: #3498db;
+    font-weight: bold;
+}
+
+.progress-steps .step.active::after {
+    background: #3498db;
+}
+
+/* Form Steps */
+.form-step {
+    background: #fff;
+    border-radius: 5px;
+    padding: 20px;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.form-step h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    font-size: 18px;
+}
+
+/* Form Groups */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-group input[type="text"],
+.form-group input[type="time"],
+.form-group input[type="date"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    transition: border 0.3s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="time"]:focus,
+.form-group input[type="date"]:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+.form-group textarea {
+    height: 120px;
+    resize: vertical;
+}
+
+.form-group input[type="file"] {
+    border: none;
+    padding: 0;
+}
+
+.form-group .description {
+    margin-top: 5px;
+    color: #7f8c8d;
+    font-size: 13px;
+    font-style: italic;
+}
+
+/* Checkbox Groups */
+.checkbox-group {
+    margin-bottom: 10px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+.checkbox-group label {
+    display: inline-block;
+    font-weight: normal;
+}
+
+/* Security Groups Section */
+.security-groups-options {
+    padding: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Zone Map */
+.zone-map-container {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.zone-map {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    overflow: hidden;
+}
+
+.zone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #2c3e50;
+    transition: background 0.3s;
+    cursor: pointer;
+}
+
+.zone:hover {
+    background: rgba(52, 152, 219, 0.1);
+}
+
+.zone.selected {
+    background: rgba(52, 152, 219, 0.3);
+    color: #2c3e50;
+}
+
+.zone.north {
+    border-bottom: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+}
+
+.zone.east {
+    border-bottom: 1px solid #ddd;
+}
+
+.zone.west {
+    border-right: 1px solid #ddd;
+}
+
+/* Photo Preview */
+.photo-preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.photo-preview {
+    width: 100px;
+    position: relative;
+}
+
+.photo-preview img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.photo-preview .filename {
+    display: block;
+    font-size: 12px;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Review Section */
+.review-section {
+    margin-bottom: 20px;
+}
+
+.review-section h4 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: #2c3e50;
+    font-size: 16px;
+    border-bottom: 1px solid #ecf0f1;
+    padding-bottom: 5px;
+}
+
+.review-photo-thumbnails {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.photo-thumbnail {
+    width: 80px;
+    position: relative;
+}
+
+.photo-thumbnail img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.photo-thumbnail .filename {
+    display: block;
+    font-size: 11px;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Form Navigation */
+.form-navigation {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+}
+
+.form-navigation button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.prev-step {
+    background: #95a5a6;
+    color: white;
+}
+
+.prev-step:hover {
+    background: #7f8c8d;
+}
+
+.next-step, .submit-report {
+    background: #3498db;
+    color: white;
+}
+
+.next-step:hover, .submit-report:hover {
+    background: #2980b9;
+}
+
+/* Submission Progress */
+.submission-progress {
+    text-align: center;
+    padding: 30px;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(52, 152, 219, 0.2);
+    border-top-color: #3498db;
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Form Messages */
+.form-messages {
+    margin-bottom: 20px;
+}
+
+.success-message {
+    background: #d4edda;
+    color: #155724;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.error-message {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .progress-steps .step {
+        font-size: 12px;
+    }
+    
+    .zone-map {
+        height: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .progress-steps .step {
+        font-size: 0;
+    }
+    
+    .progress-steps .step::before {
+        content: attr(data-step);
+        font-size: 14px;
+    }
+    
+    .form-navigation {
+        flex-direction: column-reverse;
+        gap: 10px;
+    }
+    
+    .form-navigation button {
+        width: 100%;
+    }
+    
+    .zone-map {
+        height: 200px;
+    }
+}
